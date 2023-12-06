@@ -57,8 +57,8 @@ const createConnector = ({
       state.isConnect = true;
       socket.setTimeout(1000 * 60);
       socket.once('close', handleClose);
-      socket.on('drain', handleDrain);
       socket.once('timeout', handleTimeout);
+      socket.on('drain', handleDrain);
       while (state.isActive
         && state.outgoingBufList.length > 0
         && socket.writable

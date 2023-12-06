@@ -1,14 +1,17 @@
 {
   "name": "@quanxiaoxiao/about-net",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "test": "ava"
+  },
   "main": "./src/index.mjs",
   "exports": "./src/index.mjs",
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.3",
     "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+    "ava": "^6.0.0",
     "eslint": "^8.55.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-plugin-import": "^2.29.0",

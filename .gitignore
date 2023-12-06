@@ -1,5 +1,6 @@
 node_modules
 logger
+cert/*
 *.log
 *.tar
 .DS_store
