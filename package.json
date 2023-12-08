@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/about-net",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "test": "ava"
@@ -20,6 +20,6 @@
     "eslint-plugin-react-hooks": "^4.6.0"
   },
   "engines": {
-    "node": ">= 14.18.0"
+    "node": ">= 16.0.0"
   }
 }

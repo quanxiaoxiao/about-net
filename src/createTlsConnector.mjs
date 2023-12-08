@@ -9,7 +9,6 @@ export default ({
   onClose,
   onDrain,
   onError,
-  servername,
   ...other
 }) => createConnector({
   onConnect,
@@ -19,7 +18,6 @@ export default ({
   onError,
 }, () => tls.connect({
   host: hostname,
-  servername,
   port,
   ...other,
 }));

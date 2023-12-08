@@ -25,7 +25,7 @@ const generateHeadersBuf = (headers, excludes) => {
   return Buffer.concat(result);
 };
 
-export default (options) => {
+const encodeHttp = (options) => {
   const state = {
     completed: false,
     contentSize: 0,
@@ -216,3 +216,13 @@ export default (options) => {
     ]);
   };
 };
+
+export const encodeHttpRequest = (options) => encodeHttp({
+  ...options,
+  isResponse: false,
+});
+
+export const encodeHttpResponse = (options) => encodeHttp({
+  ...options,
+  isResponse: true,
+});

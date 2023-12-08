@@ -8,7 +8,7 @@ const MAX_CHUNK_LENGTH = MAX_CHUNK_SIZE.toString(16).length;
 const REQUEST_STARTLINE_REG = /^([^ ]+) +([^ ]+) +HTTP\/(1\.1|1\.0|2)$/;
 const RESPONSE_STARTLINE_REG = /^HTTP\/(1\.1|1\.0|2)\s+(\d+)(.*)/;
 
-export default ({
+const decodeHttp = ({
   onStartLine,
   onHeader,
   onBody,
@@ -283,3 +283,13 @@ export default ({
 
   return execute;
 };
+
+export const decodeHttpRequest = (options) => decodeHttp({
+  ...options,
+  isRequest: true,
+});
+
+export const decodeHttpResponse = (options) => decodeHttp({
+  ...options,
+  isRequest: false,
+});
