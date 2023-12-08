@@ -13,6 +13,7 @@ import getCurrentDateTime from './getCurrentDateTime.mjs';
 import request from './request.mjs';
 import httpRequest from './httpRequest.mjs';
 import httpsRequest from './httpsRequest.mjs';
+import decodeContentEncoding from './decodeContentEncoding.mjs';
 
 const getDateNow = () => Math.floor(getCurrentDateTime());
 
@@ -29,4 +30,5 @@ export {
   request,
   httpRequest,
   httpsRequest,
+  decodeContentEncoding,
 };
