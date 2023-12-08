@@ -1,12 +1,15 @@
 /* eslint no-use-before-define: 0 */
 
-const createConnector = ({
-  onConnect,
-  onData,
-  onClose,
-  onDrain,
-  onError,
-}, getConnect) => {
+const createConnector = (
+  {
+    onConnect,
+    onData,
+    onDrain,
+    onClose,
+    onError,
+  },
+  getConnect,
+) => {
   const state = {
     isConnect: false,
     isActive: true,
@@ -20,6 +23,17 @@ const createConnector = ({
       socket.destroy();
     }
   };
+
+  function handleError(error) {
+    if (state.isActive) {
+      state.isActive = false;
+      if (onError) {
+        onError(error);
+      } else {
+        console.error(error);
+      }
+    }
+  }
 
   socket.once('error', handleError);
 
@@ -96,32 +110,21 @@ const createConnector = ({
     destroy();
   }
 
-  function handleError(error) {
-    if (state.isActive) {
-      state.isActive = false;
-      if (onError) {
-        onError(error);
-      } else {
-        console.error(error);
-      }
-    }
-  }
-
-  const pause = () => {
+  function pause() {
     if (state.isConnect
       && state.isActive
       && !socket.isPaused()) {
       socket.pause();
     }
-  };
+  }
 
-  const resume = () => {
+  function resume() {
     if (state.isConnect
       && state.isActive
       && socket.isPaused()) {
       socket.resume();
     }
-  };
+  }
 
   function handleData(chunk) {
     if (state.isActive) {
@@ -155,13 +158,8 @@ const createConnector = ({
     }
   };
 
-  connector.pause = () => {
-    pause();
-  };
-
-  connector.resume = () => {
-    resume();
-  };
+  connector.pause = pause;
+  connector.resume = resume;
 
   connector.write = (chunk) => {
     if (!state.isActive) {
