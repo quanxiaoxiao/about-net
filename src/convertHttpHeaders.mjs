@@ -7,11 +7,11 @@ const convertObjToArray = (obj) => {
     if (Array.isArray(value)) {
       for (let j = 0; j < value.length; j++) {
         result.push(key);
-        result.push(`${value[j]}`);
+        result.push(value[j]);
       }
     } else {
       result.push(key);
-      result.push(`${value}`);
+      result.push(value);
     }
   }
   return result;
@@ -38,7 +38,7 @@ export default (data, hostname) => {
       const key = data[i];
       const value = data[i + 1];
       result.push(key);
-      result.push(`${value}`);
+      result.push(value);
       i += 2;
     }
   }

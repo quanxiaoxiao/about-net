@@ -1,5 +1,5 @@
 import createConnector from './createConnector.mjs';
-import { encodeHttpRequest } from './encodeHttp.mjs';
+import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
 import getCurrentDateTime from './getCurrentDateTime.mjs';
 
@@ -58,7 +58,7 @@ export default (
           if (state.isActive) {
             try {
               state.dateTimeRequestSend = getCurrentDateTime();
-              connector.write(encodeHttpRequest(requestOptions));
+              connector.write(encodeHttp(requestOptions));
             } catch (error) {
               if (state.isActive) {
                 state.isActive = false;

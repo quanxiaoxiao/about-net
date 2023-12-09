@@ -27,14 +27,14 @@ test('1', (t) => {
       'user-Agent': 'quan',
       Age: 33,
     }),
-    ['user-Agent', 'quan', 'Age', '33'],
+    ['user-Agent', 'quan', 'Age', 33],
   );
   t.deepEqual(
     convertHttpHeaders({
       'user-Agent': 'quan',
       'set-cookie': ['aaa', 333],
     }),
-    ['user-Agent', 'quan', 'set-cookie', 'aaa', 'set-cookie', '333'],
+    ['user-Agent', 'quan', 'set-cookie', 'aaa', 'set-cookie', 333],
   );
 
   t.deepEqual(

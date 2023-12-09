@@ -1,27 +1,20 @@
 /* eslint no-nested-ternary: 0 */
+import http from 'node:http';
+import convertHttpHeaders from './convertHttpHeaders.mjs';
+import filterHttpHeaders from './filterHttpHeaders.mjs';
 
 const crlf = Buffer.from('\r\n');
 const HTTP_VERSION = '1.1';
 
-const generateHeadersBuf = (headers, excludes) => {
-  const keys = Object.keys(headers);
+const generateHeadersBuf = (arr) => {
   const result = [];
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const value = headers[key];
-    if (excludes) {
-      const headerKey = key.toLowerCase();
-      if (excludes.includes(headerKey)) {
-        continue;
-      }
-    }
-    result.push(Buffer.concat([
-      Buffer.from(`${key}: ${Array.isArray(value) ? value.join(' ;') : value}`),
-      crlf,
-    ]));
+  for (let i = 0; i < arr.length;) {
+    const key = arr[i];
+    const value = arr[i + 1];
+    result.push(Buffer.from(`${key}: ${value == null ? '' : value}`));
+    result.push(crlf);
+    i += 2;
   }
-
   return Buffer.concat(result);
 };
 
@@ -30,84 +23,65 @@ const encodeHttp = (options) => {
     completed: false,
     contentSize: 0,
   };
+
   const {
     headers,
     path,
-    headerExcludes,
     method,
     body,
-    statusCode = 200,
-    statusText = 'OK',
+    statusCode,
+    statusText,
     onStartLine,
     onHeader,
     onEnd,
     httpVersion = HTTP_VERSION,
-    isResponse,
   } = options;
 
-  const httpHeaders = {};
+  const keyValuePairList = filterHttpHeaders(
+    convertHttpHeaders(headers),
+    ['content-length', 'transfer-encoding'],
+  );
 
-  if (Array.isArray(headers)) {
-    for (let i = 0; i < headers.length;) {
-      const key = headers[i];
-      const headerKey = key.toLowerCase();
-      if (headerKey !== 'content-length' && headerKey !== 'transfer-encoding') {
-        const value = headers[i + 1];
-        if (Object.hasOwnProperty.call(httpHeaders, key)) {
-          httpHeaders[key] = Array.isArray(httpHeaders[key])
-            ? [...httpHeaders[key], value]
-            : [httpHeaders[key], value];
-        } else {
-          httpHeaders[key] = value;
-        }
-      }
-      i += 2;
-    }
-  } else if (headers) {
-    const headerKeys = Object
-      .keys(headers);
+  const hasBody = Object.hasOwnProperty.call(options, 'body');
 
-    for (let i = 0; i < headerKeys.length; i++) {
-      const key = headerKeys[i];
-      const headerKey = key.toLowerCase();
-      if (headerKey !== 'content-length' && headerKey !== 'transfer-encoding') {
-        const value = headers[key];
-        httpHeaders[key] = value;
-      }
-    }
-  }
-
-  if (Object.hasOwnProperty.call(options, 'body')) {
+  if (hasBody) {
     if (body == null) {
-      httpHeaders['Content-Length'] = 0;
+      state.contentLength = 0;
     } else if (typeof body === 'string') {
-      httpHeaders['Content-Length'] = Buffer.from(body).length;
+      state.contentLength = Buffer.from(body).length;
     } else if (Buffer.isBuffer(body)) {
-      httpHeaders['Content-Length'] = body.length;
+      state.contentLength = body.length;
     } else {
       throw new Error('body is invalid');
+    }
+    if (state.contentLength !== 0) {
+      keyValuePairList.push('Content-Length');
+      keyValuePairList.push(state.contentLength);
     }
   }
 
   const startLines = [];
-  if (isResponse) {
-    startLines.push(`HTTP/${httpVersion}`);
-    startLines.push(`${statusCode}`);
-    startLines.push(statusText);
-  } else {
+  const isRequest = method != null;
+
+  if (isRequest) {
     startLines.push(method.toUpperCase());
-    startLines.push(path);
+    startLines.push(path || '/');
     startLines.push(`HTTP/${httpVersion}`);
+  } else {
+    const code = statusCode == null ? 200 : statusCode;
+    startLines.push(`HTTP/${httpVersion}`);
+    startLines.push(`${code}`);
+    startLines.push(statusText == null ? (http.STATUS_CODES[code] || '') : statusText);
   }
+
   const startlineBuf = Buffer.from(startLines.join(' '));
 
   if (onStartLine) {
     onStartLine(startlineBuf);
   }
 
-  if (Object.hasOwnProperty.call(httpHeaders, 'Content-Length')) {
-    const contentLength = httpHeaders['Content-Length'];
-    const headersBuf = generateHeadersBuf(httpHeaders, headerExcludes);
+  if (hasBody) {
+    const headersBuf = generateHeadersBuf(keyValuePairList);
     if (onHeader) {
       if (!onStartLine) {
         onHeader(Buffer.concat([
@@ -125,18 +99,15 @@ const encodeHttp = (options) => {
       headersBuf,
       crlf,
     ];
-    if (body && contentLength > 0) {
-      if (typeof body === 'string') {
-        bufList.push(Buffer.from(body));
-      } else {
-        bufList.push(body);
-      }
+    if (state.contentLength > 0) {
+      bufList.push(Buffer.isBuffer(body) ? body : Buffer.from(body));
     }
-    const result = Buffer.concat(bufList);
+    const dataChunk = Buffer.concat(bufList);
     if (onEnd) {
-      onEnd(contentLength);
+      onEnd(state.contentLength);
     }
-    return result;
+
+    return dataChunk;
   }
 
   return (data) => {
@@ -148,12 +119,12 @@ const encodeHttp = (options) => {
     if (state.completed) {
       throw new Error('http request encode already completed');
     }
-    const chunk = data != null ? (typeof data === 'string' ? Buffer.from(data) : data) : null;
+    const chunk = data != null ? (Buffer.isBuffer(data) ? data : Buffer.from(data)) : null;
+
     if (!chunk || chunk.length === 0) {
       state.completed = true;
       if (state.contentSize === 0) {
-        httpHeaders['Content-Length'] = 0;
-        const headersBuf = generateHeadersBuf(httpHeaders, headerExcludes);
+        const headersBuf = generateHeadersBuf(keyValuePairList);
         if (onHeader) {
           if (!onStartLine) {
             onHeader(Buffer.concat([
@@ -182,17 +153,18 @@ const encodeHttp = (options) => {
     }
 
     const chunkSize = chunk.length;
+    const lineBuf = Buffer.from(`${chunkSize.toString(16)}\r\n`);
     if (state.contentSize === 0) {
-      httpHeaders['Transfer-Encoding'] = 'chunked';
-      const headersBuf = generateHeadersBuf(httpHeaders, headerExcludes);
+      keyValuePairList.push('Transfer-Encoding');
+      keyValuePairList.push('chunked');
+      const headersBuf = generateHeadersBuf(keyValuePairList);
       if (!onHeader) {
         state.contentSize = chunkSize;
         return Buffer.concat([
           ...onStartLine ? [] : [startlineBuf, crlf],
           headersBuf,
           crlf,
-          Buffer.from(`${chunkSize.toString(16)}`),
-          crlf,
+          lineBuf,
           chunk,
           crlf,
         ]);
@@ -209,20 +181,13 @@ const encodeHttp = (options) => {
     }
     state.contentSize += chunkSize;
     return Buffer.concat([
-      Buffer.from(`${chunkSize.toString(16)}`),
-      crlf,
+      lineBuf,
       chunk,
       crlf,
     ]);
   };
 };
 
-export const encodeHttpRequest = (options) => encodeHttp({
-  ...options,
-  isResponse: false,
-});
-
-export const encodeHttpResponse = (options) => encodeHttp({
-  ...options,
-  isResponse: true,
-});
+export default encodeHttp;
+export const encodeHttpRequest = encodeHttp;
+export const encodeHttpResponse = encodeHttp;

@@ -22,4 +22,8 @@ test('1', (t) => {
     filterHttpHeaders(['aA', 'bb', 'cC', 'dd'], ['cc', 'aa']),
     [],
   );
+  t.deepEqual(
+    filterHttpHeaders(['user-agent', 'quan', 'content-length', '333', 'transfer-encoding', 'chunked'], ['Content-length', 'transfer-encoding']),
+    ['user-agent', 'quan'],
+  );
 });

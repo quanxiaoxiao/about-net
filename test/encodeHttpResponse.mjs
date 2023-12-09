@@ -1,5 +1,5 @@
 import test from 'ava'; // eslint-disable-line
-import { encodeHttpResponse } from '../src/index.mjs';
+import encodeHttpResponse from '../src/encodeHttp.mjs'; // eslint-disable-line
 
 test('onStartLine 1', (t) => {
   const ret = encodeHttpResponse({
@@ -8,5 +8,5 @@ test('onStartLine 1', (t) => {
     statusText: 'Connection Established',
     body: null,
   });
-  t.is(ret.toString(), 'HTTP/1.0 200 Connection Established\r\nContent-Length: 0\r\n\r\n');
+  t.is(ret.toString(), 'HTTP/1.0 200 Connection Established\r\n\r\n');
 });
