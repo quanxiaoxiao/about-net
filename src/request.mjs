@@ -8,7 +8,7 @@ export default (
     path,
     method = 'GET',
     body = null,
-    headers = {},
+    headers,
     onChunk,
     onRequest,
     onResponse,
