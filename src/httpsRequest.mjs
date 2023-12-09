@@ -1,5 +1,6 @@
 import tls from 'node:tls';
 import request from './request.mjs';
+import convertHttpHeaders from './convertHttpHeaders.mjs';
 import handleResponse from './handleResponse.mjs';
 
 export default async ({
@@ -8,7 +9,7 @@ export default async ({
   port = 443,
   method = 'GET',
   body = null,
-  headers = {},
+  headers,
   onChunk,
   onRequest,
   onResponse,
@@ -18,7 +19,7 @@ export default async ({
     {
       path,
       method,
-      headers,
+      headers: convertHttpHeaders(headers, hostname),
       body,
       onChunk,
       onRequest,

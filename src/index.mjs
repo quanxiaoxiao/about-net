@@ -4,7 +4,7 @@ import {
   decodeHttpRequest,
   decodeHttpResponse,
 } from './decodeHttp.mjs';
-import {
+import encodeHttp, {
   encodeHttpRequest,
   encodeHttpResponse,
 } from './encodeHttp.mjs';
@@ -23,6 +23,7 @@ export {
   getCurrentDateTime,
   decodeHttpRequest,
   decodeHttpResponse,
+  encodeHttp,
   encodeHttpRequest,
   encodeHttpResponse,
   createConnector,
