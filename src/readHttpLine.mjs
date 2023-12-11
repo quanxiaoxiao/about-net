@@ -40,8 +40,5 @@ export default (
     }
     return null;
   }
-  return {
-    chunk: buf.slice(start, index - 1),
-    size: index - 1,
-  };
+  return buf.slice(start, index - 1);
 };

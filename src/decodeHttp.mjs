@@ -35,16 +35,15 @@ const decodeHttp = ({
   };
 
   const parseStartLine = () => {
-    const lineResult = readHttpLine(
+    const chunk = readHttpLine(
       state.dataBuf,
       0,
       'start line',
     );
-    if (!lineResult) {
+    if (!chunk) {
       return;
     }
-    const { chunk } = lineResult;
-    const len = lineResult.size;
+    const len = chunk.length;
     const matches = chunk.toString().match(isRequest ? REQUEST_STARTLINE_REG : RESPONSE_STARTLINE_REG);
     if (!matches) {
       throw new Error('parse start line fail');
@@ -85,16 +84,15 @@ const decodeHttp = ({
   const parseHeaders = () => {
     while (!state.isHeadersParseComplete
       && state.size >= 2) {
-      const lineResult = readHttpLine(
+      const chunk = readHttpLine(
         state.dataBuf,
         0,
         'header',
       );
-      if (!lineResult) {
+      if (!chunk) {
         return;
       }
-      const { chunk } = lineResult;
-      const len = lineResult.size;
+      const len = chunk.length;
       state.dataBuf = state.dataBuf.slice(len + 2);
       state.size -= (len + 2);
       if (len === 0) {
