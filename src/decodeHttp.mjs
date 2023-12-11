@@ -56,8 +56,9 @@ const decodeHttp = ({
         if (matches[3][0] !== ' ') {
           throw new Error('parse start line fail');
         }
-        if (matches[3].trim() !== '') {
-          state.statusText = matches[3].trim();
+        const statusText = matches[3].trim();
+        if (statusText !== '') {
+          state.statusText = statusText;
         }
       }
       state.httpVersion = matches[1];
