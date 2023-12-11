@@ -47,10 +47,8 @@ const encodeHttp = (options) => {
   if (hasBody) {
     if (body == null) {
       state.contentLength = 0;
-    } else if (typeof body === 'string') {
-      state.contentLength = Buffer.from(body).length;
-    } else if (Buffer.isBuffer(body)) {
-      state.contentLength = body.length;
+    } else if (Buffer.isBuffer(body) || typeof body === 'string') {
+      state.contentLength = Buffer.byteLength(body);
     } else {
       throw new Error('body is invalid');
     }
@@ -119,7 +117,7 @@ const encodeHttp = (options) => {
     if (state.completed) {
       throw new Error('http request encode already completed');
     }
-    const chunk = data != null ? (Buffer.isBuffer(data) ? data : Buffer.from(data)) : null;
+    const chunk = data != null ? Buffer.from(data) : null;
 
     if (!chunk || chunk.length === 0) {
       state.completed = true;
