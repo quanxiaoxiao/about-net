@@ -4,6 +4,7 @@ import readHttpLine from './readHttpLine.mjs';
 const crlf = Buffer.from([0x0d, 0x0a]);
 const MAX_CHUNK_SIZE = 1024 * 1024 * 800;
 const MAX_CHUNK_LENGTH = MAX_CHUNK_SIZE.toString(16).length;
+const COLON_CHAR_CODE = 0x3a;
 
 const REQUEST_STARTLINE_REG = /^([^ ]+) +([^ ]+) +HTTP\/(1\.1|1\.0|2)$/;
 const RESPONSE_STARTLINE_REG = /^HTTP\/(1\.1|1\.0|2)\s+(\d+)(.*)/;
@@ -34,15 +35,16 @@ const decodeHttp = ({
   };
 
   const parseStartLine = () => {
-    const chunk = readHttpLine(
+    const lineResult = readHttpLine(
       state.dataBuf,
       0,
       'start line',
     );
-    if (!chunk) {
+    if (!lineResult) {
       return;
     }
-    const len = chunk.length;
+    const { chunk } = lineResult;
+    const len = lineResult.size;
     const matches = chunk.toString().match(isRequest ? REQUEST_STARTLINE_REG : RESPONSE_STARTLINE_REG);
     if (!matches) {
       throw new Error('parse start line fail');
@@ -65,7 +67,7 @@ const decodeHttp = ({
       state.statusCode = parseInt(matches[2], 10);
     }
     state.dataBuf = state.dataBuf.slice(len + 2);
-    state.size = state.dataBuf.length;
+    state.size -= (len + 2);
     state.isStartLineParseComplete = true;
     if (onStartLine) {
       onStartLine(isRequest ? {
@@ -83,35 +85,36 @@ const decodeHttp = ({
   const parseHeaders = () => {
     while (!state.isHeadersParseComplete
       && state.size >= 2) {
-      const chunk = readHttpLine(
+      const lineResult = readHttpLine(
         state.dataBuf,
         0,
         'header',
       );
-      if (!chunk) {
+      if (!lineResult) {
         return;
       }
-      const len = chunk.length;
+      const { chunk } = lineResult;
+      const len = lineResult.size;
       state.dataBuf = state.dataBuf.slice(len + 2);
-      state.size = state.dataBuf.length;
+      state.size -= (len + 2);
       if (len === 0) {
         state.isHeadersParseComplete = true;
       } else {
-        const indexSplit = chunk.findIndex((b) => b === 0x3a);
+        const indexSplit = chunk.findIndex((b) => b === COLON_CHAR_CODE);
         if (indexSplit === -1) {
           throw new Error(`parse headers fail, \`${chunk.toString()}\` invalid`);
         }
         const headerKey = chunk.slice(0, indexSplit).toString().trim();
-        const key = headerKey.toLowerCase();
         const value = chunk.slice(indexSplit + 1).toString().trim();
-        if (key !== '' && value !== '') {
-          state.headersRaw.push(headerKey, value);
-          const headerName = key.toLowerCase();
-          if (Object.hasOwnProperty.call(state.headers, headerName)) {
+        if (headerKey !== '' && value !== '') {
+          state.headersRaw.push(headerKey);
+          state.headersRaw.push(value);
+          const headerName = headerKey.toLowerCase();
+          if (state.headers[headerName] != null) {
             state.headers[headerName] = Array.isArray(state.headers[headerName])
               ? [...state.headers[headerName], value]
               : [state.headers[headerName], value];
-          } else if (key === 'content-length') {
+          } else if (headerName === 'content-length') {
             const contentLength = parseInt(value, 10);
             if (Number.isNaN(contentLength)
                 || `${contentLength}` !== chunk.slice(indexSplit + 1).toString().trim()
@@ -119,9 +122,9 @@ const decodeHttp = ({
             ) {
               throw new Error('parse headers fail, content-length invalid');
             }
-            state.headers[key] = contentLength;
+            state.headers[headerName] = contentLength;
           } else {
-            state.headers[key] = value;
+            state.headers[headerName] = value;
           }
         }
       }

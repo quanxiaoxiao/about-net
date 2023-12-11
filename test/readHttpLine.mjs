@@ -38,22 +38,22 @@ test('1', (t) => {
   let ret = readHttpLine(
     Buffer.from('GET / HTTP/1.1\r\n'),
   );
-  t.is(ret.toString(), 'GET / HTTP/1.1');
+  t.is(ret.chunk.toString(), 'GET / HTTP/1.1');
   ret = readHttpLine(
     Buffer.from('GET /1234567890 HTTP/1.1\r\n'),
     0,
   );
-  t.is(ret.toString(), 'GET /1234567890 HTTP/1.1');
+  t.is(ret.chunk.toString(), 'GET /1234567890 HTTP/1.1');
   ret = readHttpLine(
     Buffer.from('GET / HTTP/1.1\r\n'),
     2,
   );
-  t.is(ret.toString(), 'T / HTTP/1.1');
+  t.is(ret.chunk.toString(), 'T / HTTP/1.1');
   ret = readHttpLine(
     Buffer.from('GET / HTTP/1.1\r\n'),
     'GET / HTTP/1.1'.length,
   );
-  t.is(ret.toString(), '');
+  t.is(ret.chunk.toString(), '');
   ret = readHttpLine(
     Buffer.from('\r'),
   );
