@@ -101,7 +101,7 @@ const decodeHttp = ({
           throw new Error(`parse headers fail, \`${chunk.toString()}\` invalid`);
         }
         const headerKey = chunk.slice(0, indexSplit).toString().trim();
-        const key = headerKey.toLowerCase().trim();
+        const key = headerKey.toLowerCase();
         const value = chunk.slice(indexSplit + 1).toString().trim();
         if (key !== '' && value !== '') {
           state.headersRaw.push(headerKey, value);
