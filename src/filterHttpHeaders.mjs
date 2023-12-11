@@ -1,6 +1,9 @@
 export default (headers, keys) => {
   if (!Array.isArray(headers)) {
-    throw new Error('headers is not array');
+    throw new Error('headers only support array');
+  }
+  if (keys.length === 0) {
+    return headers;
   }
   const regexp = new RegExp(`^${keys.join('|')}$`, 'i');
   const result = [];
