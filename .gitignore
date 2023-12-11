@@ -5,6 +5,7 @@ cert/*
 *.tar
 .DS_store
 .env
+_temp
 _index.mjs
 _index.js
 
