@@ -9,7 +9,7 @@ const decodeHostname = (buf, chunk) => {
     && buf.length > offset
   ) {
     if (nameSize === 0xc0) {
-      const skip = buf.readUint8(offset);
+      const skip = buf.readUint16BE(offset - 1) - 0xc000;
       if (skip > chunk.length) {
         throw new Error('parse fail');
       }
