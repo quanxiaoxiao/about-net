@@ -1,5 +1,6 @@
 import {
   RECORD_TYPE_A,
+  RECORD_TYPE_AAAA,
   RECORD_TYPE_CNAME,
 } from './recordTypes.mjs';
 import decodeHostname from './decodeHostname.mjs';
@@ -126,16 +127,40 @@ const procedures = [
     },
     fn: (buf, payload, chunk) => {
       const last = payload.answers[payload.answers.length - 1];
-      if (last.recordType === RECORD_TYPE_CNAME) {
-        const nameList = decodeHostname(buf.slice(0, last.dataLength), chunk);
-        last.cname = nameList.map((b) => b.toString()).join('.');
-      } else if (last.recordType === RECORD_TYPE_A) {
-        last.address = [
-          buf.readUint8(0),
-          buf.readUint8(1),
-          buf.readUint8(2),
-          buf.readUint8(3),
-        ].join('.');
+      switch (last.recordType) {
+        case RECORD_TYPE_CNAME: {
+          const nameList = decodeHostname(buf.slice(0, last.dataLength), chunk);
+          last.cname = nameList.map((b) => b.toString()).join('.');
+          break;
+        }
+        case RECORD_TYPE_A: {
+          last.address = [
+            buf.readUint8(0),
+            buf.readUint8(1),
+            buf.readUint8(2),
+            buf.readUint8(3),
+          ].join('.');
+          break;
+        }
+        case RECORD_TYPE_AAAA: {
+          const arr = [];
+          const toHex = (i, isPad) => {
+            const s = buf.readUint8(i).toString(16);
+            if (isPad) {
+              return s.padStart(2, '0');
+            }
+            return s;
+          };
+          for (let i = 0; i < buf.length;) {
+            arr.push(`${toHex(i)}${toHex(i + 1, true)}`
+              .replace(/^0+([^0])/, (a, b) => b)
+              .replace(/^0+$/, '0'));
+            i += 2;
+          }
+          last.address = arr.join(':');
+          break;
+        }
+        default: break;
       }
     },
   },
