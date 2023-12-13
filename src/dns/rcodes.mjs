@@ -1,0 +1,16 @@
+export const RCODE_NOERROR = 0;
+export const RCODE_FORMERR = 1;
+export const RCODE_SERVFAIL = 2;
+export const RCODE_NXDOMAIN = 3;
+export const RCODE_NOTIMP = 4;
+export const RCODE_REFUSED = 5;
+export const RCODE_YXDOMAIN = 6;
+export const RCODE_YXRRSET = 7;
+export const RCODE_NXRRSET = 8;
+export const RCODE_NOTAUTH = 9;
+export const RCODE_NOTZONE = 10;
+export const RCODE_11 = 11;
+export const RCODE_12 = 12;
+export const RCODE_13 = 13;
+export const RCODE_14 = 14;
+export const RCODE_15 = 15;

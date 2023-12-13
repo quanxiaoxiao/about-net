@@ -1,0 +1,16 @@
+export const OPCODE_QUERY = 0;
+export const OPCODE_IQUERY = 1;
+export const OPCODE_STATUS = 2;
+export const OPCODE_3 = 3;
+export const OPCODE_NOTIFY = 4;
+export const OPCODE_UPDATE = 5;
+export const OPCODE_6 = 6;
+export const OPCODE_7 = 7;
+export const OPCODE_8 = 8;
+export const OPCODE_9 = 9;
+export const OPCODE_10 = 10;
+export const OPCODE_11 = 11;
+export const OPCODE_12 = 12;
+export const OPCODE_13 = 13;
+export const OPCODE_14 = 14;
+export const OPCODE_15 = 15;
