@@ -6,6 +6,39 @@ import {
 import decodeHostname from './decodeHostname.mjs';
 import decode from './decode.mjs';
 
+const formatHostname = (arr) => {
+  let result = '';
+  for (let i = 0; i < arr.length; i++) {
+    const b = arr[i];
+    if (Array.isArray(b)) {
+      result = result === '' ? formatHostname(b) : `${result}.${formatHostname(b)}`;
+    } else {
+      result = result === '' ? b.toString() : `${result}.${b.toString()}`;
+    }
+  }
+  return result;
+};
+
+const calcHostnameLength = (arr) => {
+  let result = 0;
+  const len = arr.length;
+  if (len === 0) {
+    return 0;
+  }
+  for (let i = 0; i < len; i++) {
+    const b = arr[i];
+    if (Array.isArray(b)) {
+      result += 2;
+    } else {
+      result += b.length + 1;
+    }
+  }
+  if (Array.isArray(arr[len - 1])) {
+    return result;
+  }
+  return result + 1;
+};
+
 const procedures = [
   {
     size: 2,
@@ -59,10 +92,9 @@ const procedures = [
   (buf, payload, chunk) => {
     const nameList = decodeHostname(buf, chunk);
     payload.query = {
-      name: nameList.map((b) => b.toString()).join('.'),
+      name: formatHostname(nameList),
     };
-    const dataLength = nameList.reduce((acc, cur) => acc + cur.length, nameList.length + 1);
-    return [dataLength, 0];
+    return [calcHostnameLength(nameList), 0];
   },
   {
     size: 2,
@@ -80,18 +112,16 @@ const procedures = [
     payload.answers = [];
     return [0, 0];
   },
-  {
-    size: 2,
-    fn: (buf, payload, chunk) => {
-      console.log(buf);
-      payload.answers.push({
-        name: decodeHostname(buf, chunk).map((b) => b.toString()).join('.'),
-        recordType: null,
-        class: null,
-        timeToLive: null,
-        dataLength: null,
-      });
-    },
+  (buf, payload, chunk) => {
+    const nameList = decodeHostname(buf, chunk);
+    payload.answers.push({
+      name: formatHostname(nameList),
+      recordType: null,
+      class: null,
+      timeToLive: null,
+      dataLength: null,
+    });
+    return [calcHostnameLength(nameList), 0];
   },
   {
     size: 2,

@@ -13,7 +13,7 @@ const decodeHostname = (buf, chunk) => {
       if (skip > chunk.length) {
         throw new Error('parse fail');
       }
-      nameList.push(...decodeHostname(chunk.slice(skip), chunk));
+      nameList.push(decodeHostname(chunk.slice(skip), chunk));
       break;
     } else {
       const nameBuf = buf.slice(offset, offset + nameSize);
