@@ -3,7 +3,7 @@ import convertToBuf from './convertToBuf.mjs';
 
 export default (b, bitSize = 2) => {
   if (bitSize > 4) {
-    throw new Error(`\`${bitSize}\` exceed max size`);
+    throw new Error(`\`${bitSize}\` exceed max size 4`);
   }
   const chunk = convertToBuf(b);
   const chunkLength = chunk.length;

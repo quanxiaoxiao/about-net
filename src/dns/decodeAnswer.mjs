@@ -83,6 +83,7 @@ const procedures = [
   {
     size: 2,
     fn: (buf, payload, chunk) => {
+      console.log(buf);
       payload.answers.push({
         name: decodeHostname(buf, chunk).map((b) => b.toString()).join('.'),
         recordType: null,
