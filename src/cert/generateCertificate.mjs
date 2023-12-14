@@ -82,7 +82,6 @@ export default ({
     'openssl',
     'x509',
     '-req',
-    '-nodes',
     `-in ${certReqPathname}`,
     `-CA ${rootCACertPathname}`,
     `-CAkey ${rootCAKeyPathname}`,
