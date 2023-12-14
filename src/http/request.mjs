@@ -1,7 +1,7 @@
-import createConnector from './createConnector.mjs';
+import createConnector from '../createConnector.mjs';
+import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
-import getCurrentDateTime from './getCurrentDateTime.mjs';
 
 export default (
   {

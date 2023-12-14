@@ -1,5 +1,5 @@
 import test from 'ava'; // eslint-disable-line
-import readHttpLine from '../src/readHttpLine.mjs';
+import readHttpLine from '../../src/http/readHttpLine.mjs';
 
 test('fail', (t) => {
   t.throws(() => {

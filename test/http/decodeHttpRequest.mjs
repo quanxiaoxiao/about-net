@@ -1,5 +1,5 @@
 import test from 'ava'; // eslint-disable-line
-import { decodeHttpRequest } from '../src/index.mjs';
+import { decodeHttpRequest } from '../../src/http/decodeHttp.mjs';
 
 test('parseStartLine 1', (t) => {
   t.plan(3);

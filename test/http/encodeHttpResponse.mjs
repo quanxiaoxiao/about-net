@@ -1,8 +1,8 @@
 import test from 'ava'; // eslint-disable-line
-import encodeHttpResponse from '../src/encodeHttp.mjs'; // eslint-disable-line
+import encode from '../../src/http/encodeHttp.mjs';
 
 test('onStartLine 1', (t) => {
-  const ret = encodeHttpResponse({
+  const ret = encode({
     httpVersion: '1.0',
     statusCode: 200,
     statusText: 'Connection Established',

@@ -1,5 +1,5 @@
 import test from 'ava'; // eslint-disable-line
-import convertHttpHeaders from '../src/convertHttpHeaders.mjs';
+import convertHttpHeaders from '../../src/http/convertHttpHeaders.mjs';
 
 test('1', (t) => {
   t.deepEqual(convertHttpHeaders(), []);

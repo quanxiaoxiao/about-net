@@ -1,5 +1,5 @@
 import qs from 'node:querystring';
-import decodeContentEncoding from './decodeContentEncoding.mjs';
+import decodeContentEncoding from '../decodeContentEncoding.mjs';
 
 export default async (responseItem) => {
   if (responseItem.body.length > 0

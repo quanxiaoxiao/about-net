@@ -1,5 +1,5 @@
 import test from 'ava'; // eslint-disable-line
-import encodeHttpRequest from '../src/encodeHttp.mjs'; // eslint-disable-line
+import encodeHttpRequest from '../../src/http/encodeHttp.mjs'; // eslint-disable-line
 
 test('onStartLine 1', (t) => {
   t.plan(3);
