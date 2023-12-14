@@ -16,6 +16,10 @@ import httpsRequest from './httpsRequest.mjs';
 import decodeContentEncoding from './decodeContentEncoding.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
+import enpack from './enpack.mjs';
+import depack from './depack.mjs';
+import generateID from './generateID.mjs';
+import dns from './dns/index.mjs';
 
 const getDateNow = () => Math.floor(getCurrentDateTime());
 
@@ -36,4 +40,8 @@ export {
   decodeContentEncoding,
   convertHttpHeaders,
   filterHttpHeaders,
+  generateID,
+  enpack,
+  depack,
+  dns,
 };

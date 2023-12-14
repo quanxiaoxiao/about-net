@@ -196,7 +196,7 @@ const procedures = [
     },
   },
   (buf) => {
-    if (buf[0] === 0) {
+    if (buf.length === 0 || buf[0] === 0) {
       return [0, 0];
     }
     return [0, -6];

@@ -37,6 +37,9 @@ export default (procedures) => {
           state.index = skip;
         } else if (skip < 0) {
           state.index += skip;
+          if (state.index < 0) {
+            throw new Error('index bound out');
+          }
         } else {
           state.index += 1;
         }
