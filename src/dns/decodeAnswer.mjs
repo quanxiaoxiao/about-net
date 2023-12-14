@@ -195,7 +195,12 @@ const procedures = [
       }
     },
   },
-  () => [0, -6],
+  (buf) => {
+    if (buf[0] === 0) {
+      return [0, 0];
+    }
+    return [0, -6];
+  },
 ];
 
 export default () => decode(procedures);
