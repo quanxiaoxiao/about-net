@@ -1,4 +1,5 @@
 import tls from 'node:tls';
+import net from 'node:net';
 import request from './request.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
 import handleResponse from './handleResponse.mjs';
@@ -13,6 +14,7 @@ export default async ({
   onChunk,
   onRequest,
   onResponse,
+  servername,
   ...other
 }) => {
   const responseItem = await request(
@@ -25,11 +27,20 @@ export default async ({
       onRequest,
       onResponse,
     },
-    () => tls.connect({
-      host: hostname,
-      port,
-      ...other,
-    }),
+    () => {
+      const options = {
+        host: hostname,
+        servername,
+        port,
+        ...other,
+      };
+      if (!options.servername) {
+        if (net.isIP(hostname) === 0) {
+          options.servername = hostname;
+        }
+      }
+      return tls.connect(options);
+    },
   );
 
   return handleResponse(responseItem);
