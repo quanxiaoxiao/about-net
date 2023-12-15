@@ -1,5 +1,5 @@
 import getNetworkLatency from './getNetworkLatency.mjs';
 
-export {
+export default {
   getNetworkLatency,
 };
