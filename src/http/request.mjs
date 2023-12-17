@@ -127,7 +127,7 @@ export default (
             await onChunk(chunk);
           }
           try {
-            state.decode(chunk);
+            await state.decode(chunk);
           } catch (error) {
             connector();
             if (state.isActive) {

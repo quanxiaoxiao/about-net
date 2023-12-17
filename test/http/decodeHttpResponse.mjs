@@ -1,7 +1,7 @@
 import test from 'ava'; // eslint-disable-line
 import { decodeHttpResponse } from '../../src/http/decodeHttp.mjs';
 
-test('parseStartLine fail 1', (t) => {
+test('parseStartLine fail 1', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -18,13 +18,19 @@ test('parseStartLine fail 1', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200'));
-  t.throws(() => {
-    execute(Buffer.from('\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200'));
+  execute(Buffer.from('\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseStartLine fail 2', (t) => {
+test('parseStartLine fail 2', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -41,12 +47,18 @@ test('parseStartLine fail 2', (t) => {
     },
   });
 
-  t.throws(() => {
-    execute(Buffer.from('HTTP/1.1 200s\r\n'));
-  });
+  execute(Buffer.from('HTTP/1.1 200s\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseStartLine fail 3', (t) => {
+test('parseStartLine fail 3', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -63,12 +75,18 @@ test('parseStartLine fail 3', (t) => {
     },
   });
 
-  t.throws(() => {
-    execute(Buffer.from('HTTP/1.1200\r\n'));
-  });
+  execute(Buffer.from('HTTP/1.1200\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseStartLine', (t) => {
+test('parseStartLine', async (t) => {
   t.plan(3);
   const execute = decodeHttpResponse({
     onStartLine: (state) => {
@@ -86,11 +104,11 @@ test('parseStartLine', (t) => {
       t.fail();
     },
   });
-  execute(Buffer.from('HTTP/1.1 200\r'));
-  execute(Buffer.from('\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r'));
+  await execute(Buffer.from('\n'));
 });
 
-test('parseHeaders fail 1', (t) => {
+test('parseHeaders fail 1', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -108,12 +126,12 @@ test('parseHeaders fail 1', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
   t.is(ret.headers['content-length'], 0);
 });
 
-test('parseHeaders fail 2', (t) => {
+test('parseHeaders fail 2', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -130,13 +148,19 @@ test('parseHeaders fail 2', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('content-length: -1\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  execute(Buffer.from('content-length: -1\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 3', (t) => {
+test('parseHeaders fail 3', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -153,13 +177,19 @@ test('parseHeaders fail 3', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('content-length: 10.\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  execute(Buffer.from('content-length: 10.\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 4', (t) => {
+test('parseHeaders fail 4', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -176,13 +206,19 @@ test('parseHeaders fail 4', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('content-length: 10.4\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  execute(Buffer.from('content-length: 10.4\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 5', (t) => {
+test('parseHeaders fail 5', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -199,14 +235,20 @@ test('parseHeaders fail 5', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('2'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('\r\n'));
+  execute(Buffer.from('2'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 6', (t) => {
+test('parseHeaders fail 6', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -223,16 +265,22 @@ test('parseHeaders fail 6', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Server: quan\r\n'));
-  const ret = execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Server: quan\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
   t.is(ret.headers['content-length'], 0);
-  t.throws(() => {
-    execute(Buffer.from('1'));
-  });
+  execute(Buffer.from('1'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 7', (t) => {
+test('parseHeaders fail 7', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -249,14 +297,20 @@ test('parseHeaders fail 7', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Server: quan'));
-  t.throws(() => {
-    execute(Buffer.from('\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Server: quan'));
+  execute(Buffer.from('\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders fail 8', (t) => {
+test('parseHeaders fail 8', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -273,15 +327,21 @@ test('parseHeaders fail 8', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
   t.true(ret.complete);
-  t.throws(() => {
-    execute(Buffer.from('1'));
-  });
+  execute(Buffer.from('1'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseHeaders 1', (t) => {
+test('parseHeaders 1', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -302,12 +362,12 @@ test('parseHeaders 1', (t) => {
     },
   });
 
-  let ret = execute(Buffer.from('HTTP/1.1 200\r\n'));
+  let ret = await execute(Buffer.from('HTTP/1.1 200\r\n'));
   t.is(ret.statusCode, 200);
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('Server: Quan\r\n'));
-  execute(Buffer.from('Auth: aaa\r\n'));
-  ret = execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('Server: Quan\r\n'));
+  await execute(Buffer.from('Auth: aaa\r\n'));
+  ret = await execute(Buffer.from('\r\n'));
   t.deepEqual(ret.headers, {
     server: 'Quan',
     auth: 'aaa',
@@ -315,7 +375,7 @@ test('parseHeaders 1', (t) => {
   });
 });
 
-test('parseHeaders 2', (t) => {
+test('parseHeaders 2', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onHeader: (state) => {
@@ -336,15 +396,15 @@ test('parseHeaders 2', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('set-cookie: aaa=111; path=/; httponly\r\n'));
-  execute(Buffer.from('Set-Cookie: bbb=222; path=/; httponly\r\n'));
-  execute(Buffer.from('set-Cookie: ccc=333; path=/; httponly\r\n'));
-  execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('set-cookie: aaa=111; path=/; httponly\r\n'));
+  await execute(Buffer.from('Set-Cookie: bbb=222; path=/; httponly\r\n'));
+  await execute(Buffer.from('set-Cookie: ccc=333; path=/; httponly\r\n'));
+  await execute(Buffer.from('\r\n'));
 });
 
-test('parseHeaders 3', (t) => {
+test('parseHeaders 3', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onHeader: (state) => {
@@ -360,14 +420,14 @@ test('parseHeaders 3', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('\r'));
-  execute(Buffer.from('\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('\r'));
+  await execute(Buffer.from('\n'));
 });
 
-test('parseHeaders 4', (t) => {
+test('parseHeaders 4', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onHeader: (state) => {
@@ -384,14 +444,14 @@ test('parseHeaders 4', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('auth: 111\r\n'));
-  execute(Buffer.from('Auth: 222\r\n'));
-  execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('auth: 111\r\n'));
+  await execute(Buffer.from('Auth: 222\r\n'));
+  await execute(Buffer.from('\r\n'));
 });
 
-test('parseHeaders 5', (t) => {
+test('parseHeaders 5', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onHeader: (state) => {
@@ -408,13 +468,13 @@ test('parseHeaders 5', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('set-cookie: aaa=111; path=/; httponly\r\n'));
-  execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('set-cookie: aaa=111; path=/; httponly\r\n'));
+  await execute(Buffer.from('\r\n'));
 });
 
-test('parseBody fail 1', (t) => {
+test('parseBody fail 1', async (t) => {
   t.plan(7);
   let i = 0;
   const execute = decodeHttpResponse({
@@ -439,18 +499,24 @@ test('parseBody fail 1', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('ab'));
-  const ret = execute(Buffer.from('cd'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('ab'));
+  const ret = await execute(Buffer.from('cd'));
   t.is(ret.dataBuf.toString(), 'd');
-  t.throws(() => {
-    execute(Buffer.from('e'));
-  });
+  execute(Buffer.from('e'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 2', (t) => {
+test('parseBody fail 2', async (t) => {
   t.plan(5);
   let i = 0;
   const execute = decodeHttpResponse({
@@ -469,18 +535,24 @@ test('parseBody fail 2', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('ab'));
-  const ret = execute(Buffer.from('c'));
-  t.is(ret.body.toString(), '');
-  t.throws(() => {
-    execute(Buffer.from('d'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('ab'));
+  const ret = await execute(Buffer.from('c'));
+  await t.is(ret.body.toString(), '');
+  execute(Buffer.from('d'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 3', (t) => {
+test('parseBody fail 3', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onBody: () => {
@@ -491,15 +563,21 @@ test('parseBody fail 3', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('1s\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  execute(Buffer.from('1s\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 4', (t) => {
+test('parseBody fail 4', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({
     onBody: () => {
@@ -510,16 +588,22 @@ test('parseBody fail 4', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('abcde'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  execute(Buffer.from('abcde'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 5', (t) => {
+test('parseBody fail 5', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
     onBody: (chunk) => {
@@ -530,20 +614,26 @@ test('parseBody fail 5', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abc\r\n'));
-  execute(Buffer.from('0\r\n'));
-  const ret = execute(Buffer.from('\r\naaa'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  await execute(Buffer.from('abc\r\n'));
+  await execute(Buffer.from('0\r\n'));
+  const ret = await execute(Buffer.from('\r\naaa'));
   t.is(ret.dataBuf.toString(), 'aaa');
-  t.throws(() => {
-    execute(Buffer.from('b'));
-  });
+  execute(Buffer.from('b'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 6', (t) => {
+test('parseBody fail 6', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -560,17 +650,23 @@ test('parseBody fail 6', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abc\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('12s\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  await execute(Buffer.from('abc\r\n'));
+  execute(Buffer.from('12s\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody fail 7', (t) => {
+test('parseBody fail 7', async (t) => {
   t.plan(3);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -587,17 +683,23 @@ test('parseBody fail 7', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3'));
-  execute(Buffer.from('abc'));
-  t.throws(() => {
-    execute(Buffer.from('12345678'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3'));
+  await execute(Buffer.from('abc'));
+  execute(Buffer.from('12345678'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 1', (t) => {
+test('parseBody 1', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -614,17 +716,17 @@ test('parseBody 1', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abc\r\n'));
-  execute(Buffer.from('0\r\n'));
-  const ret = execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  await execute(Buffer.from('abc\r\n'));
+  await execute(Buffer.from('0\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
   t.is(ret.body.toString(), '');
 });
 
-test('parseBody 2', (t) => {
+test('parseBody 2', async (t) => {
   t.plan(6);
   let i = 0;
   const execute = decodeHttpResponse({
@@ -649,23 +751,29 @@ test('parseBody 2', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abc\r'));
-  execute(Buffer.from('\n'));
-  execute(Buffer.from('1\r\n'));
-  execute(Buffer.from('z'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('0\r\n'));
-  execute(Buffer.from('\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('11\r\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  await execute(Buffer.from('abc\r'));
+  await execute(Buffer.from('\n'));
+  await execute(Buffer.from('1\r\n'));
+  await execute(Buffer.from('z'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('0\r\n'));
+  await execute(Buffer.from('\r\n'));
+  execute(Buffer.from('11\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 3', (t) => {
+test('parseBody 3', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -679,52 +787,64 @@ test('parseBody 3', (t) => {
     },
   });
 
-  const ret = execute(Buffer.from('HTTP/1.1 200\r\ncontent-length: 4\r\n\r\nabcd'));
+  const ret = await execute(Buffer.from('HTTP/1.1 200\r\ncontent-length: 4\r\n\r\nabcd'));
 
   t.is(ret.body.toString(), 'abcd');
-  t.throws(() => {
-    execute(Buffer.from('bbb'));
-  });
+  execute(Buffer.from('bbb'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 4', (t) => {
+test('parseBody 4', async (t) => {
   const execute = decodeHttpResponse();
 
-  let ret = execute(Buffer.from('HTTP/1.1 200\r\ncontent-length: 8\r\n\r\nabcd'));
+  let ret = await execute(Buffer.from('HTTP/1.1 200\r\ncontent-length: 8\r\n\r\nabcd'));
   t.is(ret.body.toString(), 'abcd');
   t.false(ret.complete);
-  ret = execute(Buffer.from('efgg'));
+  ret = await execute(Buffer.from('efgg'));
   t.true(ret.complete);
   t.is(ret.body.toString(), 'abcdefgg');
-  t.throws(() => {
-    execute('aaa');
-  });
+  execute(Buffer.from('aaa'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 5', (t) => {
+test('parseBody 5', async (t) => {
   const execute = decodeHttpResponse();
 
-  let ret = execute(Buffer.from('HTTP/1.1 200\r\ntransfer-encoding: chunked\r\n\r\n8\r\nabcd'));
+  let ret = await execute(Buffer.from('HTTP/1.1 200\r\ntransfer-encoding: chunked\r\n\r\n8\r\nabcd'));
   t.is(ret.body.toString(), '');
   t.false(ret.complete);
-  ret = execute(Buffer.from('efgg\r\n'));
+  ret = await execute(Buffer.from('efgg\r\n'));
   t.false(ret.complete);
   t.is(ret.body.toString(), 'abcdefgg');
-  execute(Buffer.from('2\r\n'));
-  ret = execute(Buffer.from('d'));
+  await execute(Buffer.from('2\r\n'));
+  ret = await execute(Buffer.from('d'));
   t.is(ret.body.toString(), 'abcdefgg');
-  ret = execute(Buffer.from('d\r\n'));
+  ret = await execute(Buffer.from('d\r\n'));
   t.false(ret.complete);
   t.is(ret.body.toString(), 'abcdefggdd');
-  ret = execute(Buffer.from('0\r'));
+  ret = await execute(Buffer.from('0\r'));
   t.false(ret.complete);
-  ret = execute(Buffer.from('\n'));
+  ret = await execute(Buffer.from('\n'));
   t.false(ret.complete);
-  ret = execute(Buffer.from('\r\n'));
+  ret = await execute(Buffer.from('\r\n'));
   t.true(ret.complete);
 });
 
-test('parseBody 6', (t) => {
+test('parseBody 6', async (t) => {
   t.plan(3);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -741,17 +861,23 @@ test('parseBody 6', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('transfer-encoding: chunked\r\n'));
-  execute(Buffer.from('\r\n'));
-  execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abc\r'));
-  t.throws(() => {
-    execute(Buffer.from('\n'));
-  });
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('transfer-encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+  await execute(Buffer.from('3\r\n'));
+  await execute(Buffer.from('abc\r'));
+  execute(Buffer.from('\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 7', (t) => {
+test('parseBody 7', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -768,15 +894,21 @@ test('parseBody 7', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = execute(Buffer.from('Content-Length: 0\r\n\r\naaabbb'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('Content-Length: 0\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'aaabbb');
-  t.throws(() => {
-    execute(Buffer.from('ccc'));
-  });
+  execute(Buffer.from('ccc'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 8', (t) => {
+test('parseBody 8', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -793,15 +925,21 @@ test('parseBody 8', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = execute(Buffer.from('Server: quan\r\n\r\naaabbb'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('Server: quan\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'aaabbb');
-  t.throws(() => {
-    execute(Buffer.from('ccc'));
-  });
+  execute(Buffer.from('ccc'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });
 
-test('parseBody 9', (t) => {
+test('parseBody 9', async (t) => {
   t.plan(6);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -818,10 +956,16 @@ test('parseBody 9', (t) => {
     },
   });
 
-  execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = execute(Buffer.from('Content-Length: 2\r\n\r\naaabbb'));
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('Content-Length: 2\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'abbb');
-  t.throws(() => {
-    execute(Buffer.from('ccc'));
-  });
+  execute(Buffer.from('ccc'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });

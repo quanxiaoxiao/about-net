@@ -1,7 +1,7 @@
 import test from 'ava'; // eslint-disable-line
 import { decodeHttpRequest } from '../../src/http/decodeHttp.mjs';
 
-test('parseStartLine 1', (t) => {
+test('parseStartLine 1', async (t) => {
   t.plan(3);
   const execute = decodeHttpRequest({
     onStartLine: (ret) => {
@@ -23,7 +23,7 @@ test('parseStartLine 1', (t) => {
   execute(Buffer.from('GET /test HTTP/1.1\r\n'));
 });
 
-test('parseStartLine 2', (t) => {
+test('parseStartLine 2', async (t) => {
   t.plan(4);
   const execute = decodeHttpRequest({
     onStartLine: (ret) => {
@@ -42,8 +42,14 @@ test('parseStartLine 2', (t) => {
     },
   });
 
-  execute(Buffer.from('GET /test HTTP/1.1\r\n'));
-  t.throws(() => {
-    execute(Buffer.from('Content-Length: 3\r\n\r\n'));
-  });
+  await execute(Buffer.from('GET /test HTTP/1.1\r\n'));
+  execute(Buffer.from('Content-Length: 3\r\n\r\n'))
+    .then(
+      () => {
+        t.fail();
+      },
+      () => {
+        t.pass();
+      },
+    );
 });

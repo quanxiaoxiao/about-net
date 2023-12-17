@@ -1,5 +1,6 @@
 /* eslint prefer-destructuring: 0 */
 import readHttpLine from './readHttpLine.mjs';
+import filterHttpHeaders from './filterHttpHeaders.mjs';
 
 const crlf = Buffer.from([0x0d, 0x0a]);
 const MAX_CHUNK_SIZE = 1024 * 1024 * 800;
@@ -34,7 +35,7 @@ const decodeHttp = ({
     bodyBuf: Buffer.from([]),
   };
 
-  const parseStartLine = () => {
+  const parseStartLine = async () => {
     const chunk = readHttpLine(
       state.dataBuf,
       0,
@@ -69,7 +70,7 @@ const decodeHttp = ({
     state.size -= (len + 2);
     state.isStartLineParseComplete = true;
     if (onStartLine) {
-      onStartLine(isRequest ? {
+      await onStartLine(isRequest ? {
         href: state.href,
         method: state.method,
         httpVersion: state.httpVersion,
@@ -81,7 +82,7 @@ const decodeHttp = ({
     }
   };
 
-  const parseHeaders = () => {
+  const parseHeaders = async () => {
     while (!state.isHeadersParseComplete
       && state.size >= 2) {
       const chunk = readHttpLine(
@@ -128,15 +129,20 @@ const decodeHttp = ({
       }
     }
     if (state.isHeadersParseComplete) {
-      if (state.headers['content-length'] == null && state.headers['transfer-encoding'] !== 'chunked') {
+      if (!Object.hasOwnProperty.call(state.headers, 'content-length')
+        && state.headers['transfer-encoding'] !== 'chunked') {
         state.headers['content-length'] = 0;
       }
       if (state.headers['transfer-encoding'] === 'chunked') {
         state.isChunked = true;
         state.chunkSize = -1;
+        if (Object.hasOwnProperty.call(state.headers, 'content-length')) {
+          delete state.headers['content-length'];
+          state.headersRaw = filterHttpHeaders(state.headersRaw, ['content-length']);
+        }
       }
       if (onHeader) {
-        onHeader({
+        await onHeader({
           headers: state.headers,
           headersRaw: state.headersRaw,
         });
@@ -144,13 +150,14 @@ const decodeHttp = ({
     }
   };
 
-  const parseBody = () => {
+  const parseBody = async () => {
     if (state.isChunked) {
       if (state.chunkSize !== -1) {
         if (state.chunkSize + 2 > state.dataBuf.length) {
           return;
         }
-        if (state.dataBuf[state.chunkSize] !== crlf[0] || state.dataBuf[state.chunkSize + 1] !== crlf[1]) {
+        if (state.dataBuf[state.chunkSize] !== crlf[0]
+          || state.dataBuf[state.chunkSize + 1] !== crlf[1]) {
           throw new Error('parse body fail');
         }
         if (state.chunkSize === 0) {
@@ -168,11 +175,11 @@ const decodeHttp = ({
           state.size = state.dataBuf.length;
           state.chunkSize = -1;
           if (onBody && state.bodyBuf.length > 0) {
-            const body = state.bodyBuf;
+            const bodyChunk = state.bodyBuf;
             state.bodyBuf = Buffer.from([]);
-            onBody(body);
+            await onBody(bodyChunk);
           }
-          parseBody();
+          await parseBody();
         }
       } else {
         const chunk = state.dataBuf.slice(0, Math.min(MAX_CHUNK_LENGTH, state.size));
@@ -198,7 +205,7 @@ const decodeHttp = ({
         state.dataBuf = state.dataBuf.slice(index + 1);
         state.size = state.dataBuf.length;
         state.chunkSize = chunkSize;
-        parseBody();
+        await parseBody();
       }
     } else {
       const contentLength = state.headers['content-length'];
@@ -215,9 +222,9 @@ const decodeHttp = ({
         state.dataBuf = Buffer.from([]);
         state.size = 0;
         if (onBody && state.bodyBuf.length > 0) {
-          const body = state.bodyBuf;
+          const bodyChunk = state.bodyBuf;
           state.bodyBuf = Buffer.from([]);
-          onBody(body);
+          await onBody(bodyChunk);
         }
       } else {
         state.bodyBuf = Buffer.concat([
@@ -229,9 +236,9 @@ const decodeHttp = ({
         state.chunkSize = contentLength;
         state.isBodyParseComplete = true;
         if (onBody && state.bodyBuf.length > 0) {
-          const body = state.bodyBuf;
+          const bodyChunk = state.bodyBuf;
           state.bodyBuf = Buffer.from([]);
-          onBody(body);
+          await onBody(bodyChunk);
         }
       }
     }
@@ -253,7 +260,7 @@ const decodeHttp = ({
     complete: state.isBodyParseComplete,
   });
 
-  const execute = (chunk) => {
+  const execute = async (chunk) => {
     if (state.isBodyParseComplete) {
       throw new Error('already complete');
     }
@@ -265,19 +272,19 @@ const decodeHttp = ({
       ], state.size);
     }
     if (!state.isStartLineParseComplete) {
-      parseStartLine();
+      await parseStartLine();
       if (state.isStartLineParseComplete && state.size) {
         return execute();
       }
     } else if (!state.isHeadersParseComplete) {
-      parseHeaders();
+      await parseHeaders();
       if (state.isHeadersParseComplete) {
         return execute();
       }
     } else if (!state.isBodyParseComplete) {
-      parseBody();
+      await parseBody();
       if (state.isBodyParseComplete && onEnd) {
-        onEnd(getState());
+        await onEnd(getState());
       }
     }
     return getState();
