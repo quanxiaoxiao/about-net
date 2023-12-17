@@ -474,6 +474,29 @@ test('parseHeaders 5', async (t) => {
   await execute(Buffer.from('\r\n'));
 });
 
+test('parseHeaders 6', async (t) => {
+  t.plan(2);
+  const execute = decodeHttpResponse({
+    onHeader: (state) => {
+      t.deepEqual(state.headers, {
+        'transfer-encoding': 'chunked',
+      });
+      t.deepEqual(state.headersRaw, ['Transfer-Encoding', 'chunked']);
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.fail();
+    },
+  });
+
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Content-Length: 3\r\n'));
+  await execute(Buffer.from('Transfer-Encoding: chunked\r\n'));
+  await execute(Buffer.from('\r\n'));
+});
+
 test('parseBody fail 1', async (t) => {
   t.plan(7);
   let i = 0;
