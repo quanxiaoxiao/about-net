@@ -31,7 +31,10 @@ export default (
     statusText: null,
     headers: {},
     headersRaw: [],
+    encodeRequest: null,
+    connector: null,
   };
+
   const requestOptions = {
     path,
     method,
@@ -40,7 +43,22 @@ export default (
   };
 
   return new Promise((resolve, reject) => {
-    const connector = createConnector({
+    const emitError = (error) => {
+      if (state.isActive) {
+        state.isActive = false;
+        reject(error);
+      }
+    };
+
+    const outgoing = (chunk) => {
+      try {
+        state.connector.write(chunk);
+      } catch (error) {
+        emitError(error);
+      }
+    };
+
+    state.connector = createConnector({
       onConnect: async () => {
         if (state.isActive) {
           state.dateTimeConnect = getCurrentDateTime();
@@ -48,26 +66,31 @@ export default (
             try {
               await onRequest(requestOptions);
             } catch (error) {
-              connector();
-              if (state.isActive) {
-                state.isActive = false;
-                reject(error);
-              }
+              state.connector();
+              emitError(error);
             }
           }
           if (state.isActive) {
-            try {
+            if (requestOptions.body && requestOptions.body.pipe) {
+              state.encodeRequest = encodeHttp({
+                path: requestOptions.path,
+                method: requestOptions.method,
+                headers: requestOptions.headers,
+                onHeader: (chunkRequestHeader) => {
+                  state.dateTimeRequestSend = getCurrentDateTime();
+                  outgoing(Buffer.concat([
+                    chunkRequestHeader,
+                    Buffer.from('\r\n'),
+                  ]));
+                },
+              });
+            } else {
               state.dateTimeRequestSend = getCurrentDateTime();
-              connector.write(encodeHttp(requestOptions));
-            } catch (error) {
-              if (state.isActive) {
-                state.isActive = false;
-                reject(error);
-              }
+              outgoing(encodeHttp(requestOptions));
             }
           }
         } else {
-          connector();
+          state.connector();
         }
       },
       onData: async (chunk) => {
@@ -103,7 +126,7 @@ export default (
                 }
                 if (state.isActive) {
                   state.isActive = false;
-                  connector.end();
+                  state.connector.end();
                   resolve({
                     dateTimeCreate: state.dateTimeCreate,
                     dateTimeConnect: state.dateTimeConnect,
@@ -129,35 +152,19 @@ export default (
           try {
             await state.decode(chunk);
           } catch (error) {
-            connector();
-            if (state.isActive) {
-              state.isActive = false;
-              reject(error);
-            }
+            state.connector();
+            emitError(error);
           }
         } else {
-          connector();
+          state.connector();
         }
       },
-      onError: (error) => {
-        if (state.isActive) {
-          state.isActive = false;
-          reject(error);
-        }
-      },
-      onClose: () => {
-        if (state.isActive) {
-          state.isActive = false;
-          reject(new Error('socket is close'));
-        }
-      },
+      onError: emitError,
+      onClose: () => emitError(new Error('socket is close')),
     }, getConnect);
 
-    if (!connector) {
-      if (state.isActive) {
-        state.isActive = false;
-        reject(new Error('create connector fail'));
-      }
+    if (!state.connector) {
+      emitError(new Error('create connector fail'));
     }
   });
 };
