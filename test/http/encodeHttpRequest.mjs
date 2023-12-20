@@ -287,3 +287,25 @@ test('onBody 4', (t) => {
   bufList.push(execute());
   t.is(Buffer.concat(bufList).toString(), '3\r\n123\r\n0\r\n\r\n');
 });
+
+test('onBody 5', (t) => {
+  t.plan(1);
+  const execute = encodeHttpRequest({
+    method: 'post',
+    path: '/test',
+    headers: {
+      'content-length': 5,
+    },
+    onHeader: (buf) => {
+      t.is(buf.toString(), Buffer.concat([
+        Buffer.from('POST /test HTTP/1.1\r\n'),
+        Buffer.from('Transfer-Encoding: chunked\r\n'),
+      ]).toString());
+    },
+  });
+  const bufList = [];
+
+  bufList.push(execute(Buffer.from('123')));
+  bufList.push(execute(Buffer.from('2')));
+  bufList.push(execute(Buffer.from('2')));
+});

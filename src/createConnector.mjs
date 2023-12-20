@@ -175,14 +175,18 @@ const createConnector = (
     return false;
   };
 
-  connector.end = () => {
+  connector.end = (chunk) => {
     if (state.isActive) {
       if (state.isConnect) {
         socket.off('close', handleClose);
         socket.off('data', handleData);
         socket.off('drain', handleDrain);
         state.isActive = false;
-        socket.end();
+        if (chunk && chunk.length > 0) {
+          socket.end(chunk);
+        } else {
+          socket.end();
+        }
       } else {
         connector();
       }
