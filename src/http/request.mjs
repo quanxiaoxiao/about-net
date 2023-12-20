@@ -164,19 +164,25 @@ export default (
           if (state.isActive) {
             if (!state.decode) {
               state.dateTimeResponse = getCurrentDateTime();
-              if (onResponse) {
-                await onResponse();
-              }
               state.decode = decodeHttpResponse({
                 onStartLine: (ret) => {
                   state.statusCode = ret.statusCode;
                   state.httpVersion = ret.httpVersion;
                   state.statusText = ret.statusText;
                 },
-                onHeader: (ret) => {
+                onHeader: async (ret) => {
                   state.dateTimeHeader = getCurrentDateTime();
                   state.headers = ret.headers;
                   state.headersRaw = ret.headersRaw;
+                  if (onResponse) {
+                    await onResponse({
+                      statusCode: state.statusCode,
+                      httpVersion: state.httpVersion,
+                      statusText: state.statusText,
+                      headers: state.headers,
+                      headersRaw: state.headersRaw,
+                    });
+                  }
                 },
                 onBody: (bodyChunk) => {
                   if (state.dateTimeBody == null) {
