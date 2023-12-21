@@ -24,16 +24,17 @@ const decodeHttp = ({
     method: null,
     href: null,
     isChunked: false,
-    isStartLineParseComplete: false,
-    isBodyParseComplete: false,
-    isHeadersParseComplete: false,
     headers: {},
     headersRaw: [],
     size: 0,
+    step: 0,
     chunkSize: 0,
     dataBuf: Buffer.from([]),
     bodyBuf: Buffer.from([]),
   };
+
+  const isBodyParseComplete = () => state.step >= 3;
+  const isHeaderPraseComplete = () => state.step >= 2;
 
   const parseStartLine = async () => {
     const chunk = readHttpLine(
@@ -68,7 +69,7 @@ const decodeHttp = ({
     }
     state.dataBuf = state.dataBuf.slice(len + 2);
     state.size -= (len + 2);
-    state.isStartLineParseComplete = true;
+    state.step += 1;
     if (onStartLine) {
       await onStartLine(isRequest ? {
         href: state.href,
@@ -83,7 +84,7 @@ const decodeHttp = ({
   };
 
   const parseHeaders = async () => {
-    while (!state.isHeadersParseComplete
+    while (state.step === 1
       && state.size >= 2) {
       const chunk = readHttpLine(
         state.dataBuf,
@@ -97,7 +98,7 @@ const decodeHttp = ({
       state.dataBuf = state.dataBuf.slice(len + 2);
       state.size -= (len + 2);
       if (len === 0) {
-        state.isHeadersParseComplete = true;
+        state.step += 1;
       } else {
         const indexSplit = chunk.findIndex((b) => b === COLON_CHAR_CODE);
         if (indexSplit === -1) {
@@ -128,7 +129,7 @@ const decodeHttp = ({
         }
       }
     }
-    if (state.isHeadersParseComplete) {
+    if (isHeaderPraseComplete()) {
       if (!Object.hasOwnProperty.call(state.headers, 'content-length')
         && state.headers['transfer-encoding'] !== 'chunked') {
         state.headers['content-length'] = 0;
@@ -161,7 +162,7 @@ const decodeHttp = ({
           throw new Error('parse body fail');
         }
         if (state.chunkSize === 0) {
-          state.isBodyParseComplete = true;
+          state.step += 1;
           state.chunkSize = -1;
           state.dataBuf = state.dataBuf.slice(2);
           state.size = state.dataBuf.length;
@@ -210,7 +211,7 @@ const decodeHttp = ({
     } else {
       const contentLength = state.headers['content-length'];
       if (contentLength === 0) {
-        state.isBodyParseComplete = true;
+        state.step += 1;
         return;
       }
       if (state.chunkSize + state.dataBuf.length < contentLength) {
@@ -234,7 +235,7 @@ const decodeHttp = ({
         state.dataBuf = state.dataBuf.slice(contentLength - state.chunkSize);
         state.size = state.dataBuf.length;
         state.chunkSize = contentLength;
-        state.isBodyParseComplete = true;
+        state.step += 1;
         if (onBody && state.bodyBuf.length > 0) {
           const bodyChunk = state.bodyBuf;
           state.bodyBuf = Buffer.from([]);
@@ -257,11 +258,17 @@ const decodeHttp = ({
     headersRaw: state.headersRaw,
     body: state.bodyBuf,
     dataBuf: state.dataBuf,
-    complete: state.isBodyParseComplete,
+    complete: isBodyParseComplete(),
   });
 
-  const execute = async (chunk) => {
-    if (state.isBodyParseComplete) {
+  const processes = [
+    parseStartLine,
+    parseHeaders,
+    parseBody,
+  ];
+
+  return async (chunk) => {
+    if (isBodyParseComplete()) {
       throw new Error('already complete');
     }
     if (chunk && chunk.length > 0) {
@@ -271,26 +278,22 @@ const decodeHttp = ({
         chunk,
       ], state.size);
     }
-    if (!state.isStartLineParseComplete) {
-      await parseStartLine();
-      if (state.isStartLineParseComplete && state.size) {
-        return execute();
-      }
-    } else if (!state.isHeadersParseComplete) {
-      await parseHeaders();
-      if (state.isHeadersParseComplete) {
-        return execute();
-      }
-    } else if (!state.isBodyParseComplete) {
-      await parseBody();
-      if (state.isBodyParseComplete && onEnd) {
-        await onEnd(getState());
+
+    while (state.step < processes.length) {
+      const fn = processes[state.step];
+      const current = state.step;
+      await fn(); // eslint-disable-line
+      if (current === state.step) {
+        return getState();
       }
     }
+
+    if (isBodyParseComplete() && onEnd) {
+      await onEnd(getState());
+    }
+
     return getState();
   };
-
-  return execute;
 };
 
 export const decodeHttpRequest = (options) => decodeHttp({

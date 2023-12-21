@@ -341,6 +341,34 @@ test('parseHeaders fail 8', async (t) => {
     );
 });
 
+test('parseHeaders fail 9', async (t) => {
+  t.plan(3);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: () => {
+      t.pass();
+      throw new Error('header fail');
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.fail();
+    },
+  });
+
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  await execute(Buffer.from('Auth: 222\r\n'));
+  try {
+    await execute(Buffer.from('\r\n'));
+    t.fail();
+  } catch (error) {
+    t.is(error.message, 'header fail');
+  }
+});
+
 test('parseHeaders 1', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
