@@ -19,15 +19,12 @@ test('parseStartLine fail 1', async (t) => {
   });
 
   await execute(Buffer.from('HTTP/1.1 200'));
-  execute(Buffer.from('\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseStartLine fail 2', async (t) => {
@@ -46,16 +43,12 @@ test('parseStartLine fail 2', async (t) => {
       t.fail();
     },
   });
-
-  execute(Buffer.from('HTTP/1.1 200s\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('HTTP/1.1 200s\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseStartLine fail 3', async (t) => {
@@ -74,16 +67,12 @@ test('parseStartLine fail 3', async (t) => {
       t.fail();
     },
   });
-
-  execute(Buffer.from('HTTP/1.1200\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('HTTP/1.1200\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseStartLine', async (t) => {
@@ -149,15 +138,12 @@ test('parseHeaders fail 2', async (t) => {
   });
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('content-length: -1\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('content-length: -1\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 3', async (t) => {
@@ -178,15 +164,12 @@ test('parseHeaders fail 3', async (t) => {
   });
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('content-length: 10.\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('content-length: 10.\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 4', async (t) => {
@@ -207,15 +190,12 @@ test('parseHeaders fail 4', async (t) => {
   });
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
-  execute(Buffer.from('content-length: 10.4\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('content-length: 10.4\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 5', async (t) => {
@@ -237,15 +217,12 @@ test('parseHeaders fail 5', async (t) => {
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   await execute(Buffer.from('\r\n'));
-  execute(Buffer.from('2'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('2'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 6', async (t) => {
@@ -269,15 +246,12 @@ test('parseHeaders fail 6', async (t) => {
   await execute(Buffer.from('Server: quan\r\n'));
   const ret = await execute(Buffer.from('\r\n'));
   t.is(ret.headers['content-length'], 0);
-  execute(Buffer.from('1'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('1'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 7', async (t) => {
@@ -299,15 +273,12 @@ test('parseHeaders fail 7', async (t) => {
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   await execute(Buffer.from('Server: quan'));
-  execute(Buffer.from('\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 8', async (t) => {
@@ -330,15 +301,12 @@ test('parseHeaders fail 8', async (t) => {
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   const ret = await execute(Buffer.from('\r\n'));
   t.true(ret.complete);
-  execute(Buffer.from('1'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('1'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseHeaders fail 9', async (t) => {
@@ -556,15 +524,12 @@ test('parseBody fail 1', async (t) => {
   await execute(Buffer.from('ab'));
   const ret = await execute(Buffer.from('cd'));
   t.is(ret.dataBuf.toString(), 'd');
-  execute(Buffer.from('e'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('e'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 2', async (t) => {
@@ -592,15 +557,12 @@ test('parseBody fail 2', async (t) => {
   await execute(Buffer.from('ab'));
   const ret = await execute(Buffer.from('c'));
   await t.is(ret.body.toString(), '');
-  execute(Buffer.from('d'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('d'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 3', async (t) => {
@@ -617,15 +579,12 @@ test('parseBody fail 3', async (t) => {
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   await execute(Buffer.from('transfer-encoding: chunked\r\n'));
   await execute(Buffer.from('\r\n'));
-  execute(Buffer.from('1s\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('1s\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 4', async (t) => {
@@ -643,15 +602,12 @@ test('parseBody fail 4', async (t) => {
   await execute(Buffer.from('transfer-encoding: chunked\r\n'));
   await execute(Buffer.from('\r\n'));
   await execute(Buffer.from('3\r\n'));
-  execute(Buffer.from('abcde'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('abcde'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 5', async (t) => {
@@ -673,15 +629,12 @@ test('parseBody fail 5', async (t) => {
   await execute(Buffer.from('0\r\n'));
   const ret = await execute(Buffer.from('\r\naaa'));
   t.is(ret.dataBuf.toString(), 'aaa');
-  execute(Buffer.from('b'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('b'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 6', async (t) => {
@@ -706,15 +659,12 @@ test('parseBody fail 6', async (t) => {
   await execute(Buffer.from('\r\n'));
   await execute(Buffer.from('3\r\n'));
   await execute(Buffer.from('abc\r\n'));
-  execute(Buffer.from('12s\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('12s\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody fail 7', async (t) => {
@@ -739,15 +689,12 @@ test('parseBody fail 7', async (t) => {
   await execute(Buffer.from('\r\n'));
   await execute(Buffer.from('3'));
   await execute(Buffer.from('abc'));
-  execute(Buffer.from('12345678'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('12345678'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 1', async (t) => {
@@ -813,15 +760,12 @@ test('parseBody 2', async (t) => {
   await execute(Buffer.from('\r\n'));
   await execute(Buffer.from('0\r\n'));
   await execute(Buffer.from('\r\n'));
-  execute(Buffer.from('11\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('11\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 3', async (t) => {
@@ -841,15 +785,12 @@ test('parseBody 3', async (t) => {
   const ret = await execute(Buffer.from('HTTP/1.1 200\r\ncontent-length: 4\r\n\r\nabcd'));
 
   t.is(ret.body.toString(), 'abcd');
-  execute(Buffer.from('bbb'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('bbb'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 4', async (t) => {
@@ -861,15 +802,12 @@ test('parseBody 4', async (t) => {
   ret = await execute(Buffer.from('efgg'));
   t.true(ret.complete);
   t.is(ret.body.toString(), 'abcdefgg');
-  execute(Buffer.from('aaa'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('aaa'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 5', async (t) => {
@@ -917,15 +855,12 @@ test('parseBody 6', async (t) => {
   await execute(Buffer.from('\r\n'));
   await execute(Buffer.from('3\r\n'));
   await execute(Buffer.from('abc\r'));
-  execute(Buffer.from('\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 7', async (t) => {
@@ -948,15 +883,12 @@ test('parseBody 7', async (t) => {
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   const ret = await execute(Buffer.from('Content-Length: 0\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'aaabbb');
-  execute(Buffer.from('ccc'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('ccc'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 8', async (t) => {
@@ -979,15 +911,12 @@ test('parseBody 8', async (t) => {
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   const ret = await execute(Buffer.from('Server: quan\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'aaabbb');
-  execute(Buffer.from('ccc'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('ccc'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
 
 test('parseBody 9', async (t) => {
@@ -1010,13 +939,10 @@ test('parseBody 9', async (t) => {
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
   const ret = await execute(Buffer.from('Content-Length: 2\r\n\r\naaabbb'));
   t.is(ret.dataBuf.toString(), 'abbb');
-  execute(Buffer.from('ccc'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('ccc'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });

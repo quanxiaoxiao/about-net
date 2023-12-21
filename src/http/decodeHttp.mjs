@@ -191,12 +191,12 @@ const decodeHttp = ({
     }
   };
 
-  const parseBody = async () => {
-    if (state.isChunked) {
+  const parseBodyWithChunk = async () => {
+    if (!isBodyParseComplete()) {
       if (state.chunkSize !== -1) {
         if (state.chunkSize + 2 <= state.dataBuf.length) {
           if (state.dataBuf[state.chunkSize] !== crlf[0]
-            || state.dataBuf[state.chunkSize + 1] !== crlf[1]) {
+              || state.dataBuf[state.chunkSize + 1] !== crlf[1]) {
             throw new Error('parse body fail');
           }
           if (state.chunkSize === 0) {
@@ -218,7 +218,7 @@ const decodeHttp = ({
               state.bodyBuf = Buffer.from([]);
               await onBody(bodyChunk);
             }
-            await parseBody();
+            await parseBodyWithChunk();
           }
         }
       } else {
@@ -231,22 +231,30 @@ const decodeHttp = ({
           const hexChunkSize = chunk.slice(0, index - 1).toString();
           const chunkSize = parseInt(hexChunkSize, 16);
           if (Number.isNaN(chunkSize)
-            || chunkSize.toString(16) !== hexChunkSize
-            || chunkSize < 0
-            || chunkSize > MAX_CHUNK_SIZE
+              || chunkSize.toString(16) !== hexChunkSize
+              || chunkSize < 0
+              || chunkSize > MAX_CHUNK_SIZE
           ) {
             throw new Error('parse body fail');
           }
           state.dataBuf = state.dataBuf.slice(index + 1);
           state.size = state.dataBuf.length;
           state.chunkSize = chunkSize;
-          await parseBody();
+          await parseBodyWithChunk();
         } else if (chunk.length === MAX_CHUNK_LENGTH) {
           throw new Error('parse body fail');
         }
       }
-    } else {
-      await parseBodyWithContentLength();
+    }
+  };
+
+  const parseBody = async () => {
+    if (!isBodyParseComplete()) {
+      if (state.isChunked) {
+        await parseBodyWithChunk();
+      } else {
+        await parseBodyWithContentLength();
+      }
     }
   };
 
