@@ -214,37 +214,37 @@ const decodeHttp = ({
       }
     } else {
       const contentLength = state.headers['content-length'];
-      if (contentLength === 0) {
-        state.step += 1;
-        return;
-      }
-      if (state.chunkSize + state.dataBuf.length < contentLength) {
-        state.chunkSize += state.dataBuf.length;
-        state.bodyBuf = Buffer.concat([
-          state.bodyBuf,
-          state.dataBuf,
-        ]);
-        state.dataBuf = Buffer.from([]);
-        state.size = 0;
-        if (onBody && state.bodyBuf.length > 0) {
-          const bodyChunk = state.bodyBuf;
-          state.bodyBuf = Buffer.from([]);
-          await onBody(bodyChunk);
+      if (contentLength > 0) {
+        if (state.chunkSize + state.dataBuf.length < contentLength) {
+          state.chunkSize += state.dataBuf.length;
+          state.bodyBuf = Buffer.concat([
+            state.bodyBuf,
+            state.dataBuf,
+          ]);
+          state.dataBuf = Buffer.from([]);
+          state.size = 0;
+          if (onBody && state.bodyBuf.length > 0) {
+            const bodyChunk = state.bodyBuf;
+            state.bodyBuf = Buffer.from([]);
+            await onBody(bodyChunk);
+          }
+        } else {
+          state.bodyBuf = Buffer.concat([
+            state.bodyBuf,
+            state.dataBuf.slice(0, contentLength - state.chunkSize),
+          ]);
+          state.dataBuf = state.dataBuf.slice(contentLength - state.chunkSize);
+          state.size = state.dataBuf.length;
+          state.chunkSize = contentLength;
+          state.step += 1;
+          if (onBody && state.bodyBuf.length > 0) {
+            const bodyChunk = state.bodyBuf;
+            state.bodyBuf = Buffer.from([]);
+            await onBody(bodyChunk);
+          }
         }
       } else {
-        state.bodyBuf = Buffer.concat([
-          state.bodyBuf,
-          state.dataBuf.slice(0, contentLength - state.chunkSize),
-        ]);
-        state.dataBuf = state.dataBuf.slice(contentLength - state.chunkSize);
-        state.size = state.dataBuf.length;
-        state.chunkSize = contentLength;
         state.step += 1;
-        if (onBody && state.bodyBuf.length > 0) {
-          const bodyChunk = state.bodyBuf;
-          state.bodyBuf = Buffer.from([]);
-          await onBody(bodyChunk);
-        }
       }
     }
   };
