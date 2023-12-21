@@ -33,8 +33,8 @@ const decodeHttp = ({
     bodyBuf: Buffer.from([]),
   };
 
-  const isBodyParseComplete = () => state.step >= 3;
   const isHeaderPraseComplete = () => state.step >= 2;
+  const isBodyParseComplete = () => state.step >= 3;
 
   const parseStartLine = async () => {
     const chunk = readHttpLine(
@@ -71,20 +71,24 @@ const decodeHttp = ({
     state.size -= (len + 2);
     state.step += 1;
     if (onStartLine) {
-      await onStartLine(isRequest ? {
-        href: state.href,
-        method: state.method,
-        httpVersion: state.httpVersion,
-      } : {
-        httpVersion: state.httpVersion,
-        statusCode: state.statusCode,
-        statusText: state.statusText,
-      });
+      if (isRequest) {
+        await onStartLine({
+          href: state.href,
+          method: state.method,
+          httpVersion: state.httpVersion,
+        });
+      } else {
+        await onStartLine({
+          httpVersion: state.httpVersion,
+          statusCode: state.statusCode,
+          statusText: state.statusText,
+        });
+      }
     }
   };
 
   const parseHeaders = async () => {
-    while (state.step === 1
+    while (!isHeaderPraseComplete()
       && state.size >= 2) {
       const chunk = readHttpLine(
         state.dataBuf,
@@ -152,7 +156,7 @@ const decodeHttp = ({
   };
 
   const parseBody = async () => {
-    if (state.isChunked) {
+    if (state.isChunked && !isBodyParseComplete()) {
       if (state.chunkSize !== -1) {
         if (state.chunkSize + 2 > state.dataBuf.length) {
           return;
