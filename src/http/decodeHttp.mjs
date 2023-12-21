@@ -10,24 +10,25 @@ const COLON_CHAR_CODE = 0x3a;
 const REQUEST_STARTLINE_REG = /^([^ ]+) +([^ ]+) +HTTP\/(1\.1|1\.0|2)$/;
 const RESPONSE_STARTLINE_REG = /^HTTP\/(1\.1|1\.0|2)\s+(\d+)(.*)/;
 
-const decodeHttp = ({
-  onStartLine,
-  onHeader,
-  onBody,
-  onEnd,
-  isRequest,
-} = {}) => {
+const decodeHttp = (
+  {
+    onStartLine,
+    onHeader,
+    onBody,
+    onEnd,
+    isRequest,
+  } = {},
+) => {
   const state = {
+    step: 0,
     httpVersion: null,
     statusText: null,
     statusCode: null,
     method: null,
     href: null,
-    isChunked: false,
     headers: {},
     headersRaw: [],
     size: 0,
-    step: 0,
     chunkSize: 0,
     dataBuf: Buffer.from([]),
     bodyBuf: Buffer.from([]),
@@ -135,11 +136,10 @@ const decodeHttp = ({
     }
     if (isHeaderPraseComplete()) {
       if (!Object.hasOwnProperty.call(state.headers, 'content-length')
-        && state.headers['transfer-encoding'] !== 'chunked') {
+        && (state.headers['transfer-encoding'] || '').toLowerCase() !== 'chunked') {
         state.headers['content-length'] = 0;
       }
-      if (state.headers['transfer-encoding'] === 'chunked') {
-        state.isChunked = true;
+      if ((state.headers['transfer-encoding'] || '').toLowerCase() === 'chunked') {
         state.chunkSize = -1;
         if (Object.hasOwnProperty.call(state.headers, 'content-length')) {
           delete state.headers['content-length'];
@@ -253,7 +253,7 @@ const decodeHttp = ({
     if (isBodyParseComplete()) {
       throw new Error('body already parse complete');
     }
-    if (state.isChunked) {
+    if ((state.headers['transfer-encoding'] || '').toLowerCase() === 'chunked') {
       await parseBodyWithChunk();
     } else {
       await parseBodyWithContentLength();
