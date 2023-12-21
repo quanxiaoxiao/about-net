@@ -10,14 +10,20 @@ export default ({
   onDrain,
   onError,
   ...other
-}) => createConnector({
-  onConnect,
-  onData,
-  onClose,
-  onDrain,
-  onError,
-}, () => tls.connect({
-  host: hostname,
-  port,
-  ...other,
-}));
+}) => createConnector(
+  {
+    onConnect,
+    onData,
+    onClose,
+    onDrain,
+    onError,
+  },
+  () => tls.connect({
+    host: hostname,
+    port,
+    secureContext: tls.createSecureContext({
+      secureProtocol: 'TLSv1_2_method',
+    }),
+    ...other,
+  }),
+);

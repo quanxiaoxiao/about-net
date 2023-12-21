@@ -11,22 +11,23 @@ export default async ({
   body = null,
   headers,
   onChunk,
+  onBody,
   onRequest,
   onResponse,
 }) => {
-  const socket = new net.Socket();
-
   const responseItem = await request(
     {
       path,
       method,
       headers: convertHttpHeaders(headers, hostname),
       body,
+      onBody,
       onChunk,
       onRequest,
       onResponse,
     },
     () => {
+      const socket = new net.Socket();
       socket.connect({
         host: hostname,
         port,

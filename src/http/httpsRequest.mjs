@@ -11,6 +11,7 @@ export default async ({
   method = 'GET',
   body = null,
   headers,
+  onBody,
   onChunk,
   onRequest,
   onResponse,
@@ -24,6 +25,7 @@ export default async ({
       headers: convertHttpHeaders(headers, hostname),
       body,
       onChunk,
+      onBody,
       onRequest,
       onResponse,
     },
@@ -32,6 +34,9 @@ export default async ({
         host: hostname,
         servername,
         port,
+        secureContext: tls.createSecureContext({
+          secureProtocol: 'TLSv1_2_method',
+        }),
         ...other,
       };
       if (!options.servername) {

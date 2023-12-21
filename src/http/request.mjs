@@ -13,6 +13,7 @@ export default (
     onChunk,
     onRequest,
     onResponse,
+    onBody,
   },
   getConnect,
 ) => {
@@ -25,7 +26,7 @@ export default (
     dateTimeHeader: null,
     dateTimeBody: null,
     dateTimeEnd: null,
-    bodyBufList: [],
+    body: Buffer.from([]),
     decode: null,
     statusCode: null,
     httpVersion: null,
@@ -132,15 +133,20 @@ export default (
                 if (!requestOptions.body.readable) {
                   emitError(new Error('request body stream unable read'));
                 } else {
-                  state.encodeRequest = encodeHttp({
-                    path: requestOptions.path,
-                    method: requestOptions.method,
-                    headers: requestOptions.headers,
-                  });
-                  requestOptions.body.once('error', handleErrorOnRequestBody);
-                  requestOptions.body.once('close', handleCloseOnRequestBody);
-                  requestOptions.body.once('end', handleEndOnRequestBody);
-                  requestOptions.body.on('data', handleDataOnRequestBody);
+                  try {
+                    state.encodeRequest = encodeHttp({
+                      path: requestOptions.path,
+                      method: requestOptions.method,
+                      headers: requestOptions.headers,
+                    });
+                    requestOptions.body.once('error', handleErrorOnRequestBody);
+                    requestOptions.body.once('close', handleCloseOnRequestBody);
+                    requestOptions.body.once('end', handleEndOnRequestBody);
+                    requestOptions.body.on('data', handleDataOnRequestBody);
+                  } catch (error) {
+                    emitError(error);
+                    closeRequestStream();
+                  }
                 }
               } else {
                 state.dateTimeRequestSend = getCurrentDateTime();
@@ -184,12 +190,18 @@ export default (
                     });
                   }
                 },
-                onBody: (bodyChunk) => {
+                onBody: async (bodyChunk) => {
                   if (state.dateTimeBody == null) {
                     state.dateTimeBody = getCurrentDateTime();
                   }
                   if (bodyChunk && bodyChunk.length > 0) {
-                    state.bodyBufList.push(bodyChunk);
+                    if (onBody) {
+                      await onBody(chunk);
+                    }
+                    state.body = Buffer.concat([
+                      state.body,
+                      bodyChunk,
+                    ]);
                   }
                 },
                 onEnd: () => {
@@ -199,7 +211,6 @@ export default (
                   }
                   if (state.isActive) {
                     state.isActive = false;
-                    state.connector.end();
                     resolve({
                       dateTimeCreate: state.dateTimeCreate,
                       dateTimeConnect: state.dateTimeConnect,
@@ -213,8 +224,9 @@ export default (
                       statusText: state.statusText,
                       headers: state.headers,
                       headersRaw: state.headersRaw,
-                      body: Buffer.concat(state.bodyBufList),
+                      body: state.body,
                     });
+                    state.connector.end();
                   }
                 },
               });
