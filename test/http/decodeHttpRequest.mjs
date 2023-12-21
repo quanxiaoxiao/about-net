@@ -43,13 +43,10 @@ test('parseStartLine 2', async (t) => {
   });
 
   await execute(Buffer.from('GET /test HTTP/1.1\r\n'));
-  execute(Buffer.from('Content-Length: 3\r\n\r\n'))
-    .then(
-      () => {
-        t.fail();
-      },
-      () => {
-        t.pass();
-      },
-    );
+  try {
+    await execute(Buffer.from('Content-Length: 3\r\n\r\n'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
 });
