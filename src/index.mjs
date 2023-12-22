@@ -7,6 +7,7 @@ import convertToBuf from './convertToBuf.mjs';
 import enpack from './enpack.mjs';
 import depack from './depack.mjs';
 import generateID from './generateID.mjs';
+import parseUrl from './parseUrl.mjs';
 
 import dns from './dns/index.mjs';
 import cert from './cert/index.mjs';
@@ -26,6 +27,7 @@ export {
   generateID,
   enpack,
   depack,
+  parseUrl,
 
   http,
   dns,
