@@ -19,6 +19,7 @@ export default async (
     dest: null,
     isActive: true,
     sourceBufList,
+    tick: null,
   };
 
   if (!socketSource.isPaused()) {
@@ -85,6 +86,7 @@ export default async (
     state.dest = createConnector({
       onConnect: () => {
         if (state.isActive) {
+          clearTimeout(state.tick);
           state.source.resume();
           if (onConnect) {
             onConnect();
@@ -133,6 +135,13 @@ export default async (
         } catch (error) {
           handleError(error);
         }
+      }
+      if (state.isActive) {
+        state.tick = setTimeout(() => {
+          if (state.tick) {
+            handleError(new Error('connect dest timeout'));
+          }
+        }, 1000 * 10);
       }
     }
   }

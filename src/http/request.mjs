@@ -25,8 +25,8 @@ export default (
     dateTimeCreate: getCurrentDateTime(),
     dateTimeConnect: null,
     dateTimeRequestSend: null,
-    bytesRead: 0,
-    bytesWritten: 0,
+    bytesIncoming: 0,
+    bytesOutgoing: 0,
     dateTimeResponse: null,
     dateTimeHeader: null,
     dateTimeBody: null,
@@ -62,7 +62,7 @@ export default (
         try {
           const b = state.encodeRequest(chunk);
           if (b && b.length > 0) {
-            state.bytesWritten += b.length;
+            state.bytesOutgoing += b.length;
             const ret = state.connector.write(b);
             if (!ret) {
               requestOptions.body.pause();
@@ -89,7 +89,7 @@ export default (
         try {
           const ret = state.encodeRequest();
           if (ret && ret.length > 0) {
-            state.bytesWritten += ret.length;
+            state.bytesOutgoing += ret.length;
             state.connector.write(ret);
           }
         } catch (error) {
@@ -180,8 +180,8 @@ export default (
               httpVersion: state.httpVersion,
               statusText: state.statusText,
               headers: state.headers,
-              bytesRead: state.bytesRead,
-              bytesWritten: state.bytesWritten,
+              bytesIncoming: state.bytesIncoming,
+              bytesOutgoing: state.bytesOutgoing,
               headersRaw: state.headersRaw,
               body: state.body,
             });
@@ -223,7 +223,7 @@ export default (
                           chunkRequestHeaders,
                           Buffer.from('\r\n'),
                         ]);
-                        state.bytesWritten += b.length;
+                        state.bytesOutgoing += b.length;
                         state.connector.write(b);
                       },
                     });
@@ -242,7 +242,7 @@ export default (
                 try {
                   const b = encodeHttp(requestOptions);
                   if (b.length > 0) {
-                    state.bytesWritten += b.length;
+                    state.bytesOutgoing += b.length;
                     state.connector.write(b);
                   }
                 } catch (error) {
@@ -267,7 +267,7 @@ export default (
         onData: async (chunk) => {
           if (state.isActive) {
             const size = chunk.length;
-            state.bytesRead += size;
+            state.bytesIncoming += size;
             if (!state.decode) {
               state.dateTimeResponse = getCurrentDateTime();
               bindResponseDecode();
