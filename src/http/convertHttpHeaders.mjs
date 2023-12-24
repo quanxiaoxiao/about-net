@@ -30,23 +30,27 @@ export default (data, hostname) => {
     }
     return convertObjToArray(data);
   }
-  const result = [];
+  const headerList = [];
   if (!Array.isArray(data)) {
-    result.push(...convertObjToArray(data));
+    headerList.push(...convertObjToArray(data));
   } else {
     for (let i = 0; i < data.length;) {
       const key = data[i];
       const value = data[i + 1];
-      result.push(key);
-      result.push(value);
+      headerList.push(key);
+      headerList.push(value);
       i += 2;
     }
   }
 
-  for (let i = 0; i < result.length;) {
-    const key = result[i];
-    if (/^host$/i.test(key)) {
-      return result;
+  const result = [];
+
+  for (let i = 0; i < headerList.length;) {
+    const key = headerList[i];
+    const value = headerList[i + 1];
+    if (!/^host$/i.test(key)) {
+      result.push(key);
+      result.push(value);
     }
     i += 2;
   }
