@@ -181,16 +181,17 @@ const createConnector = (
       throw new Error('socket already close');
     }
     if (!state.isConnect) {
-      throw new Error('socket is not connect');
-    }
-    socket.off('close', handleClose);
-    socket.off('data', handleData);
-    socket.off('drain', handleDrain);
-    state.isActive = false;
-    if (chunk && chunk.length > 0) {
-      socket.end(chunk);
+      connector();
     } else {
-      socket.end();
+      socket.off('close', handleClose);
+      socket.off('data', handleData);
+      socket.off('drain', handleDrain);
+      state.isActive = false;
+      if (chunk && chunk.length > 0) {
+        socket.end(chunk);
+      } else {
+        socket.end();
+      }
     }
   };
 
