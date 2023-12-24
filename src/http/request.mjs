@@ -12,6 +12,8 @@ export default (
     headers,
     onChunk,
     onRequest,
+    onStartLine,
+    onHeader,
     onResponse,
     onBody,
   },
@@ -19,9 +21,12 @@ export default (
 ) => {
   const state = {
     isActive: true,
+    tick: null,
     dateTimeCreate: getCurrentDateTime(),
     dateTimeConnect: null,
     dateTimeRequestSend: null,
+    bytesRead: 0,
+    bytesWritten: 0,
     dateTimeResponse: null,
     dateTimeHeader: null,
     dateTimeBody: null,
@@ -52,20 +57,12 @@ export default (
       }
     };
 
-    const outgoing = (chunk) => {
-      try {
-        state.connector.write(chunk);
-      } catch (error) {
-        emitError(error);
-        closeRequestStream();
-      }
-    };
-
     function handleDataOnRequestBody(chunk) {
       if (state.isActive) {
         try {
           const b = state.encodeRequest(chunk);
           if (b && b.length > 0) {
+            state.bytesWritten += b.length;
             const ret = state.connector.write(b);
             if (!ret) {
               requestOptions.body.pause();
@@ -92,6 +89,7 @@ export default (
         try {
           const ret = state.encodeRequest();
           if (ret && ret.length > 0) {
+            state.bytesWritten += ret.length;
             state.connector.write(ret);
           }
         } catch (error) {
@@ -116,15 +114,28 @@ export default (
 
     function bindResponseDecode() {
       state.decode = decodeHttpResponse({
-        onStartLine: (ret) => {
+        onStartLine: async (ret) => {
           state.statusCode = ret.statusCode;
           state.httpVersion = ret.httpVersion;
           state.statusText = ret.statusText;
+          if (onStartLine) {
+            await onStartLine({
+              statusCode: state.statusCode,
+              httpVersion: state.httpVersion,
+              statusText: state.statusText,
+            });
+          }
         },
         onHeader: async (ret) => {
           state.dateTimeHeader = getCurrentDateTime();
           state.headers = ret.headers;
           state.headersRaw = ret.headersRaw;
+          if (onHeader) {
+            await onHeader({
+              headers: state.headers,
+              headersRaw: state.headersRaw,
+            });
+          }
           if (onResponse) {
             await onResponse({
               statusCode: state.statusCode,
@@ -142,11 +153,12 @@ export default (
           if (bodyChunk && bodyChunk.length > 0) {
             if (onBody) {
               await onBody(bodyChunk);
+            } else {
+              state.body = Buffer.concat([
+                state.body,
+                bodyChunk,
+              ]);
             }
-            state.body = Buffer.concat([
-              state.body,
-              bodyChunk,
-            ]);
           }
         },
         onEnd: () => {
@@ -168,6 +180,8 @@ export default (
               httpVersion: state.httpVersion,
               statusText: state.statusText,
               headers: state.headers,
+              bytesRead: state.bytesRead,
+              bytesWritten: state.bytesWritten,
               headersRaw: state.headersRaw,
               body: state.body,
             });
@@ -181,6 +195,7 @@ export default (
       {
         onConnect: async () => {
           if (state.isActive) {
+            clearTimeout(state.tick);
             state.dateTimeConnect = getCurrentDateTime();
             if (onRequest) {
               try {
@@ -194,6 +209,7 @@ export default (
             if (state.isActive) {
               if (requestOptions.body && requestOptions.body.pipe) {
                 if (!requestOptions.body.readable) {
+                  state.connector();
                   emitError(new Error('request body stream unable read'));
                 } else {
                   try {
@@ -201,19 +217,38 @@ export default (
                       path: requestOptions.path,
                       method: requestOptions.method,
                       headers: requestOptions.headers,
+                      onHeader: (chunkRequestHeaders) => {
+                        state.dateTimeRequestSend = getCurrentDateTime();
+                        const b = Buffer.concat([
+                          chunkRequestHeaders,
+                          Buffer.from('\r\n'),
+                        ]);
+                        state.bytesWritten += b.length;
+                        state.connector.write(b);
+                      },
                     });
                     requestOptions.body.once('error', handleErrorOnRequestBody);
                     requestOptions.body.once('close', handleCloseOnRequestBody);
                     requestOptions.body.once('end', handleEndOnRequestBody);
                     requestOptions.body.on('data', handleDataOnRequestBody);
                   } catch (error) {
+                    state.connector();
                     emitError(error);
                     closeRequestStream();
                   }
                 }
               } else {
                 state.dateTimeRequestSend = getCurrentDateTime();
-                outgoing(encodeHttp(requestOptions));
+                try {
+                  const b = encodeHttp(requestOptions);
+                  if (b.length > 0) {
+                    state.bytesWritten += b.length;
+                    state.connector.write(b);
+                  }
+                } catch (error) {
+                  emitError(error);
+                  closeRequestStream();
+                }
               }
             }
           } else {
@@ -231,15 +266,19 @@ export default (
         },
         onData: async (chunk) => {
           if (state.isActive) {
+            const size = chunk.length;
+            state.bytesRead += size;
             if (!state.decode) {
               state.dateTimeResponse = getCurrentDateTime();
               bindResponseDecode();
             }
-            if (onChunk) {
+            if (size > 0 && onChunk) {
               await onChunk(chunk);
             }
             try {
-              await state.decode(chunk);
+              if (size > 0) {
+                await state.decode(chunk);
+              }
             } catch (error) {
               state.connector();
               closeRequestStream();
@@ -264,6 +303,14 @@ export default (
     if (!state.connector) {
       emitError(new Error('create connector fail'));
       closeRequestStream();
+    } else {
+      state.tick = setTimeout(() => {
+        if (state.isActive) {
+          state.connector();
+          closeRequestStream();
+          emitError(new Error('connect timeout'));
+        }
+      }, 1000 * 15);
     }
   });
 };
