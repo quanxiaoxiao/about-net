@@ -114,6 +114,69 @@ export default (
       }
     }
 
+    function bindResponseDecode() {
+      state.decode = decodeHttpResponse({
+        onStartLine: (ret) => {
+          state.statusCode = ret.statusCode;
+          state.httpVersion = ret.httpVersion;
+          state.statusText = ret.statusText;
+        },
+        onHeader: async (ret) => {
+          state.dateTimeHeader = getCurrentDateTime();
+          state.headers = ret.headers;
+          state.headersRaw = ret.headersRaw;
+          if (onResponse) {
+            await onResponse({
+              statusCode: state.statusCode,
+              httpVersion: state.httpVersion,
+              statusText: state.statusText,
+              headers: state.headers,
+              headersRaw: state.headersRaw,
+            });
+          }
+        },
+        onBody: async (bodyChunk) => {
+          if (state.dateTimeBody == null) {
+            state.dateTimeBody = getCurrentDateTime();
+          }
+          if (bodyChunk && bodyChunk.length > 0) {
+            if (onBody) {
+              await onBody(bodyChunk);
+            }
+            state.body = Buffer.concat([
+              state.body,
+              bodyChunk,
+            ]);
+          }
+        },
+        onEnd: () => {
+          state.dateTimeEnd = getCurrentDateTime();
+          if (state.dateTimeBody == null) {
+            state.dateTimeBody = state.dateTimeEnd;
+          }
+          if (state.isActive) {
+            state.isActive = false;
+            resolve({
+              dateTimeCreate: state.dateTimeCreate,
+              dateTimeConnect: state.dateTimeConnect,
+              dateTimeResponse: state.dateTimeResponse,
+              dateTimeHeader: state.dateTimeHeader,
+              dateTimeBody: state.dateTimeBody,
+              dateTimeEnd: state.dateTimeEnd,
+              dateTimeRequestSend: state.dateTimeRequestSend,
+              statusCode: state.statusCode,
+              httpVersion: state.httpVersion,
+              statusText: state.statusText,
+              headers: state.headers,
+              headersRaw: state.headersRaw,
+              body: state.body,
+            });
+            state.connector.end();
+          }
+        },
+      });
+    }
+
     state.connector = createConnector(
       {
         onConnect: async () => {
@@ -170,66 +233,7 @@ export default (
           if (state.isActive) {
             if (!state.decode) {
               state.dateTimeResponse = getCurrentDateTime();
-              state.decode = decodeHttpResponse({
-                onStartLine: (ret) => {
-                  state.statusCode = ret.statusCode;
-                  state.httpVersion = ret.httpVersion;
-                  state.statusText = ret.statusText;
-                },
-                onHeader: async (ret) => {
-                  state.dateTimeHeader = getCurrentDateTime();
-                  state.headers = ret.headers;
-                  state.headersRaw = ret.headersRaw;
-                  if (onResponse) {
-                    await onResponse({
-                      statusCode: state.statusCode,
-                      httpVersion: state.httpVersion,
-                      statusText: state.statusText,
-                      headers: state.headers,
-                      headersRaw: state.headersRaw,
-                    });
-                  }
-                },
-                onBody: async (bodyChunk) => {
-                  if (state.dateTimeBody == null) {
-                    state.dateTimeBody = getCurrentDateTime();
-                  }
-                  if (bodyChunk && bodyChunk.length > 0) {
-                    if (onBody) {
-                      await onBody(chunk);
-                    }
-                    state.body = Buffer.concat([
-                      state.body,
-                      bodyChunk,
-                    ]);
-                  }
-                },
-                onEnd: () => {
-                  state.dateTimeEnd = getCurrentDateTime();
-                  if (state.dateTimeBody == null) {
-                    state.dateTimeBody = state.dateTimeEnd;
-                  }
-                  if (state.isActive) {
-                    state.isActive = false;
-                    resolve({
-                      dateTimeCreate: state.dateTimeCreate,
-                      dateTimeConnect: state.dateTimeConnect,
-                      dateTimeResponse: state.dateTimeResponse,
-                      dateTimeHeader: state.dateTimeHeader,
-                      dateTimeBody: state.dateTimeBody,
-                      dateTimeEnd: state.dateTimeEnd,
-                      dateTimeRequestSend: state.dateTimeRequestSend,
-                      statusCode: state.statusCode,
-                      httpVersion: state.httpVersion,
-                      statusText: state.statusText,
-                      headers: state.headers,
-                      headersRaw: state.headersRaw,
-                      body: state.body,
-                    });
-                    state.connector.end();
-                  }
-                },
-              });
+              bindResponseDecode();
             }
             if (onChunk) {
               await onChunk(chunk);
