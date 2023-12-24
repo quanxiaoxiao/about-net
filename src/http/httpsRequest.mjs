@@ -13,6 +13,8 @@ export default async ({
   headers,
   onBody,
   onChunk,
+  onStartLine,
+  onHeader,
   onRequest,
   onResponse,
   servername,

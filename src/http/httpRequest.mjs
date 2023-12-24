@@ -12,6 +12,8 @@ export default async ({
   headers,
   onChunk,
   onBody,
+  onStartLine,
+  onHeader,
   onRequest,
   onResponse,
 }) => {
@@ -23,6 +25,8 @@ export default async ({
       body,
       onBody,
       onChunk,
+      onStartLine,
+      onHeader,
       onRequest,
       onResponse,
     },

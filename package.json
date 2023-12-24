@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/about-net",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "type": "module",
   "scripts": {
     "test": "ava"
