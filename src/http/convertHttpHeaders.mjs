@@ -43,14 +43,10 @@ export default (data, hostname) => {
     }
   }
 
-  const result = [];
-
   for (let i = 0; i < headerList.length;) {
     const key = headerList[i];
-    const value = headerList[i + 1];
-    if (!/^host$/i.test(key)) {
-      result.push(key);
-      result.push(value);
+    if (/^host$/i.test(key)) {
+      return headerList;
     }
     i += 2;
   }
@@ -58,6 +54,6 @@ export default (data, hostname) => {
   return [
     'Host',
     hostname,
-    ...result,
+    ...headerList,
   ];
 };

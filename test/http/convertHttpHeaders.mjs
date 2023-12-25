@@ -14,7 +14,7 @@ test('1', (t) => {
       host: 'quan.com',
       'user-Agent': 'quan',
     }, 'rice.com'),
-    ['Host', 'rice.com', 'user-Agent', 'quan'],
+    ['host', 'quan.com', 'user-Agent', 'quan'],
   );
   t.deepEqual(
     convertHttpHeaders({
@@ -51,7 +51,7 @@ test('1', (t) => {
       'user-Agent',
       'quan',
     ], 'rice.com'),
-    ['Host', 'rice.com', 'user-Agent', 'quan'],
+    ['hoSt', 'quan.com', 'user-Agent', 'quan'],
   );
   t.deepEqual(
     convertHttpHeaders([

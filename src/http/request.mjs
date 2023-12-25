@@ -310,7 +310,7 @@ export default (
           closeRequestStream();
           emitError(new Error('connect timeout'));
         }
-      }, 1000 * 15);
+      }, 1000 * 30);
     }
   });
 };
