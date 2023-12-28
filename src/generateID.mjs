@@ -1,3 +1,6 @@
+/**
+ * @param {number} [max=2147483647]
+ */
 export default (max = 2147483647) => {
   const state = {
     current: 1,

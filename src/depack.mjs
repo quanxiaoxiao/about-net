@@ -1,5 +1,8 @@
 import { Buffer } from 'node:buffer';
 
+/**
+ * @param {number} [bitSize=2]
+ */
 export default (bitSize = 2) => {
   if (bitSize > 4) {
     throw new Error(`\`${bitSize}\` exceed max size 4`);
@@ -10,6 +13,13 @@ export default (bitSize = 2) => {
     chunkSize: -1,
     buf: Buffer.from([]),
   };
+  /**
+   * @param {Buffer} chunk
+   * @returns {Object | null}
+   * @property {number} size
+   * @property {Buffer} payload
+   * @property {Buffer} buf
+   */
   return (chunk) => {
     if (state.chunkSize !== -1
       && state.size - bitSize >= state.chunkSize) {
