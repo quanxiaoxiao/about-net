@@ -1,6 +1,11 @@
 import { Buffer } from 'node:buffer';
 import convertToBuf from './convertToBuf.mjs';
 
+/**
+ * @param {Buffer|string} b
+ * @param {number} bitSize
+ * @returns {Buffer}
+ */
 export default (b, bitSize = 2) => {
   if (bitSize > 4) {
     throw new Error(`\`${bitSize}\` exceed max size 4`);
