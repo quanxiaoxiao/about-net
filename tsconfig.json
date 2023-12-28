@@ -12,6 +12,6 @@
     "checkJs": true
   },
   "include": [
-    "src/enpack.mjs"
+    "src/decodeContentEncoding.mjs"
   ]
 }
