@@ -12,6 +12,6 @@
     "checkJs": true
   },
   "include": [
-    "src/decodeContentEncoding.mjs"
+    "src/createConnector.mjs"
   ]
 }

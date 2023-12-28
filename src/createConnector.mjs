@@ -1,22 +1,45 @@
+import tls from 'node:tls';
+import net from 'node:net';
 /* eslint no-use-before-define: 0 */
 
+/**
+ * @param {Object} options
+ * @param {() => void | null} options.onConnect
+ * @param {(a: Buffer) => void | boolean} options.onData
+ * @param {Function} [options.onDrain]
+ * @param {Function} [options.onClose]
+ * @param {Function} [options.onError]
+ * @param {() => import('node:tls').TLSSocket | import('node:net').Socket} getConnect
+ */
 const createConnector = (
-  {
+  options,
+  getConnect,
+) => {
+  const {
     onConnect,
     onData,
     onDrain,
     onClose,
     onError,
-  },
-  getConnect,
-) => {
+  } = options;
+
   const state = {
     isConnect: false,
     isActive: true,
+    /** @type {Array<Buffer>} */
     outgoingBufList: [],
   };
 
   const socket = getConnect();
+
+  if (!(socket instanceof tls.TLSSocket) && !(socket instanceof net.Socket)) {
+    if (onError) {
+      onError(new Error('connect socket invalid'));
+    } else {
+      console.error('connect socket invalid');
+    }
+    return null;
+  }
 
   const destroy = () => {
     if (!socket.destroyed) {
@@ -24,6 +47,9 @@ const createConnector = (
     }
   };
 
+  /**
+   * @param {Error} error
+   */
   function handleError(error) {
     if (state.isActive) {
       state.isActive = false;
@@ -77,7 +103,10 @@ const createConnector = (
         && state.outgoingBufList.length > 0
         && socket.writable
       ) {
-        socket.write(state.outgoingBufList.shift());
+        const chunk = state.outgoingBufList.shift();
+        if (chunk) {
+          socket.write(chunk);
+        }
       }
       process.nextTick(() => {
         if (state.isActive) {
@@ -126,6 +155,9 @@ const createConnector = (
     }
   }
 
+  /**
+   * @param {Buffer} chunk
+   */
   function handleData(chunk) {
     if (state.isActive) {
       try {
@@ -162,6 +194,10 @@ const createConnector = (
   connector.pause = pause;
   connector.resume = resume;
 
+  /**
+   * @param {Buffer} chunk
+   * @return {boolean}
+   */
   connector.write = (chunk) => {
     if (!state.isActive) {
       throw new Error('unable send chunk, socket already close');
@@ -176,6 +212,9 @@ const createConnector = (
     return false;
   };
 
+  /**
+   * @param {Buffer|null} chunk
+   */
   connector.end = (chunk) => {
     if (!state.isActive) {
       throw new Error('socket already close');
