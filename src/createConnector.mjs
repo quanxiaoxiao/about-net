@@ -2,13 +2,16 @@ import tls from 'node:tls';
 import net from 'node:net';
 /* eslint no-use-before-define: 0 */
 
+// net.Socket.CONNECTING -> net.Socket.OPEN -> net.Socket.CLOSED
+
 /**
- * @param {Object} options
- * @param {() => void | null} options.onConnect
- * @param {(a: Buffer) => void | boolean} options.onData
- * @param {Function} [options.onDrain]
- * @param {Function} [options.onClose]
- * @param {Function} [options.onError]
+ * @param {{
+ *   onConnect?: Function,
+ *   onData: (a: Buffer) => void | boolean,
+ *   onClose?: Function,
+ *   onError?: Function,
+ *   onDrain?: Function,
+ * }} options
  * @param {() => import('node:tls').TLSSocket | import('node:net').Socket} getConnect
  */
 const createConnector = (
@@ -41,11 +44,23 @@ const createConnector = (
     return null;
   }
 
-  const destroy = () => {
+  if (socket.destroyed
+    || !socket.writable
+    || !socket.readable
+  ) {
+    if (onError) {
+      onError(new Error('socket already destroy'));
+    } else {
+      console.error('socket already destroy');
+    }
+    return null;
+  }
+
+  function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
     }
-  };
+  }
 
   /**
    * @param {Error} error
@@ -67,19 +82,10 @@ const createConnector = (
     return null;
   }
 
-  if (socket.readyState === 'opening') {
+  if (socket.connecting) {
     socket.once('connect', handleConnect);
-  } else if (socket.readyState === 'open') {
-    handleConnect();
   } else {
-    state.isActive = false;
-    destroy();
-    if (onError) {
-      onError(new Error(`unable handle readyState ${socket.readyState}`));
-    } else {
-      console.error(`unable handle readyState ${socket.readyState}`);
-    }
-    return null;
+    handleConnect();
   }
 
   function handleDrain() {
@@ -89,37 +95,48 @@ const createConnector = (
       }
     } else {
       socket.off('drain', handleDrain);
+      destroy();
     }
   }
 
   function handleConnect() {
     if (state.isActive) {
-      state.isConnect = true;
-      socket.setTimeout(1000 * 60);
-      socket.once('close', handleClose);
-      socket.once('timeout', handleTimeout);
-      socket.on('drain', handleDrain);
-      while (state.isActive
-        && state.outgoingBufList.length > 0
-        && socket.writable
-      ) {
-        const chunk = state.outgoingBufList.shift();
-        if (chunk) {
-          socket.write(chunk);
+      if (!socket.remoteAddress) {
+        state.isActive = true;
+        if (onError) {
+          onError(new Error('socket connect fail'));
+        } else {
+          console.error('socket connect fail');
         }
-      }
-      process.nextTick(() => {
-        if (state.isActive) {
-          if (onConnect) {
-            onConnect();
+        destroy();
+      } else {
+        state.isConnect = true;
+        socket.setTimeout(1000 * 60);
+        socket.once('close', handleClose);
+        socket.once('timeout', handleTimeout);
+        socket.on('drain', handleDrain);
+        while (state.isActive
+          && state.outgoingBufList.length > 0
+          && socket.writable
+        ) {
+          const chunk = state.outgoingBufList.shift();
+          if (chunk && chunk.length > 0) {
+            socket.write(chunk);
           }
-          process.nextTick(() => {
-            if (state.isActive) {
-              socket.on('data', handleData);
-            }
-          });
         }
-      });
+        process.nextTick(() => {
+          if (state.isActive) {
+            if (onConnect) {
+              onConnect();
+            }
+            process.nextTick(() => {
+              if (state.isActive) {
+                socket.on('data', handleData);
+              }
+            });
+          }
+        });
+      }
     } else {
       destroy();
     }
