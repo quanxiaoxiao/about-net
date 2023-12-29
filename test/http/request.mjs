@@ -1,10 +1,11 @@
 import net from 'node:net';
 import http from 'node:http';
 import test from 'ava'; // eslint-disable-line
+import encodeHttp from '../../src/http/encodeHttp.mjs';
 import request from '../../src/http/request.mjs';
 
 const _getPort = () => {
-  let _port = 5250;
+  let _port = 5350;
   return () => {
     const port = _port;
     _port += 1;
@@ -22,7 +23,7 @@ const waitFor = async (t = 100) => {
   });
 };
 
-test('error 1', async (t) => {
+test('error socket 1', async (t) => {
   try {
     await request({
       path: '/aaa',
@@ -37,7 +38,7 @@ test('error 1', async (t) => {
   await waitFor();
 });
 
-test('error 2', async (t) => {
+test('error can\'t connect 2', async (t) => {
   try {
     await request({
       path: '/aaa',
@@ -54,4 +55,37 @@ test('error 2', async (t) => {
     t.pass();
   }
   await waitFor();
+});
+
+test('error server close error 1', async (t) => {
+  t.plan(2);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('data', (chunk) => {
+      t.is(chunk.toString(), encodeHttp({
+        path: '/',
+        method: 'GET',
+        body: null,
+      }).toString());
+    });
+    setTimeout(() => {
+      socket.end();
+    }, 100);
+  });
+  server.listen(port);
+  try {
+    await request({}, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  await waitFor();
+  server.close();
 });

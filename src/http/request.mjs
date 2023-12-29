@@ -12,9 +12,10 @@ const channels = {
 
 /**
  * @typeof {{
- *   path: string,
- *   method: [string='GET'],
- *   body?:  Buffer | string,
+  *  _id?: string,
+  *  path: [string='/'],
+  *  method: [string='GET'],
+  *  body?:  Buffer | string,
   *  onChunk?:  (chunk: Buffer) => Promise<void>,
   *  onStartLine?:  (a: Object) => Promise<void>,
   *  onRequest?:  (a: Object) => Promise<void>,
@@ -35,7 +36,7 @@ export default (
 ) => {
   const {
     _id,
-    path,
+    path = '/',
     method = 'GET',
     body = null,
     headers,
