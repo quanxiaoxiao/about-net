@@ -203,7 +203,7 @@ const decodeHttp = (
       if (state.chunkSize + 2 <= state.dataBuf.length) {
         if (state.dataBuf[state.chunkSize] !== crlf[0]
               || state.dataBuf[state.chunkSize + 1] !== crlf[1]) {
-          throw new Error('parse body fail');
+          throw new HttpParserError('parse body fail', isRequest ? 400 : null);
         }
         if (state.chunkSize === 0) {
           state.step += 1;
@@ -228,7 +228,7 @@ const decodeHttp = (
       const index = chunk.findIndex((b) => b === crlf[1]);
       if (index !== -1) {
         if (index <= 1 || chunk[index - 1] !== crlf[0]) {
-          throw new Error('parse body fail');
+          throw new HttpParserError('parse body fail', isRequest ? 400 : null);
         }
         const hexChunkSize = chunk.slice(0, index - 1).toString();
         const chunkSize = parseInt(hexChunkSize, 16);
@@ -237,14 +237,14 @@ const decodeHttp = (
               || chunkSize < 0
               || chunkSize > MAX_CHUNK_SIZE
         ) {
-          throw new Error('parse body fail');
+          throw new HttpParserError('parse body fail', isRequest ? 400 : null);
         }
         state.dataBuf = state.dataBuf.slice(index + 1);
         state.size = state.dataBuf.length;
         state.chunkSize = chunkSize;
         await parseBodyWithChunk();
       } else if (chunk.length === MAX_CHUNK_LENGTH) {
-        throw new Error('parse body fail');
+        throw new HttpParserError('parse body fail', isRequest ? 400 : null);
       }
     }
   };
