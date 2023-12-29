@@ -1,7 +1,7 @@
+/* eslint no-use-before-define: 0 */
 import tls from 'node:tls';
 import net from 'node:net';
 import assert from 'node:assert';
-/* eslint no-use-before-define: 0 */
 
 // net.Socket.CONNECTING -> net.Socket.OPEN -> net.Socket.CLOSED
 
