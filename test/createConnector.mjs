@@ -3,11 +3,6 @@ import test from 'ava'; // eslint-disable-line
 import createConnector from '../src/createConnector.mjs';
 
 test('1', (t) => {
-  t.throws(() => {
-    t.is(createConnector({
-      onData: () => {},
-    }, null), null);
-  });
   t.is(createConnector({
     onData: () => {},
   }, () => {}), null);
@@ -21,9 +16,59 @@ test('1', (t) => {
   }), null);
 });
 
-test('2', async (t) => {
-  t.plan(1);
-  createConnector({
+test('onError 1', async (t) => {
+  t.plan(2);
+  const ret = createConnector({
+    onConnect: () => {
+      t.fail();
+    },
+    onData: () => {
+      t.fail();
+    },
+    onError: () => {
+      t.pass();
+    },
+  }, () => {
+    const socket = net.Socket();
+    socket.destroy();
+    return socket;
+  });
+
+  t.is(ret, null);
+
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, 100);
+  });
+});
+
+test('onError 2', async (t) => {
+  t.plan(2);
+  const ret = createConnector({
+    onConnect: () => {
+      t.fail();
+    },
+    onData: () => {
+      t.fail();
+    },
+    onError: () => {
+      t.pass();
+    },
+  }, () => 'xxx');
+
+  t.is(ret, null);
+
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, 100);
+  });
+});
+
+test('onError 3', async (t) => {
+  t.plan(2);
+  const connector = createConnector({
     onConnect: () => {
       t.fail();
     },
@@ -37,6 +82,7 @@ test('2', async (t) => {
       t.fail();
     },
   }, () => net.Socket());
+  t.is(typeof connector, 'function');
   await new Promise((resolve) => {
     setTimeout(() => {
       resolve();

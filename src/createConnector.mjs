@@ -1,5 +1,6 @@
 import tls from 'node:tls';
 import net from 'node:net';
+import assert from 'node:assert';
 /* eslint no-use-before-define: 0 */
 
 // net.Socket.CONNECTING -> net.Socket.OPEN -> net.Socket.CLOSED
@@ -26,13 +27,6 @@ const createConnector = (
     onError,
   } = options;
 
-  const state = {
-    isConnect: false,
-    isActive: true,
-    /** @type {Array<Buffer>} */
-    outgoingBufList: [],
-  };
-
   const socket = getConnect();
 
   if (!(socket instanceof tls.TLSSocket) && !(socket instanceof net.Socket)) {
@@ -56,6 +50,13 @@ const createConnector = (
     return null;
   }
 
+  const state = {
+    isConnect: false,
+    isActive: true,
+    /** @type {Array<Buffer>} */
+    outgoingBufList: [],
+  };
+
   function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
@@ -75,7 +76,6 @@ const createConnector = (
       }
     }
   }
-
   socket.once('error', handleError);
 
   if (!state.isActive) {
@@ -216,9 +216,7 @@ const createConnector = (
    * @return {boolean}
    */
   connector.write = (chunk) => {
-    if (!state.isActive) {
-      throw new Error('unable send chunk, socket already close');
-    }
+    assert(state.isActive);
     if (!state.isConnect) {
       state.outgoingBufList.push(chunk);
       return false;
@@ -233,9 +231,7 @@ const createConnector = (
    * @param {Buffer|null} chunk
    */
   connector.end = (chunk) => {
-    if (!state.isActive) {
-      throw new Error('socket already close');
-    }
+    assert(state.isActive);
     if (!state.isConnect) {
       connector();
     } else {
