@@ -29,12 +29,20 @@ const createConnector = (
 
   const socket = getConnect();
 
-  if (!(socket instanceof tls.TLSSocket) && !(socket instanceof net.Socket)) {
+  /**
+   * @param {Error|string} error
+   */
+  function emitError(error) {
+    const err = typeof error === 'string' ? new Error(error) : error;
     if (onError) {
-      onError(new Error('connect socket invalid'));
+      onError(err);
     } else {
-      console.error('connect socket invalid');
+      console.error(err);
     }
+  }
+
+  if (!(socket instanceof tls.TLSSocket) && !(socket instanceof net.Socket)) {
+    emitError('connect socket invalid');
     return null;
   }
 
@@ -42,11 +50,7 @@ const createConnector = (
     || !socket.writable
     || !socket.readable
   ) {
-    if (onError) {
-      onError(new Error('socket already destroy'));
-    } else {
-      console.error('socket already destroy');
-    }
+    emitError('socket already destroy');
     return null;
   }
 
@@ -69,11 +73,7 @@ const createConnector = (
   function handleError(error) {
     if (state.isActive) {
       state.isActive = false;
-      if (onError) {
-        onError(error);
-      } else {
-        console.error(error);
-      }
+      emitError(error);
     }
   }
   socket.once('error', handleError);
@@ -103,11 +103,7 @@ const createConnector = (
     if (state.isActive) {
       if (!socket.remoteAddress) {
         state.isActive = true;
-        if (onError) {
-          onError(new Error('socket connect fail'));
-        } else {
-          console.error('socket connect fail');
-        }
+        emitError('socket connect fail');
         destroy();
       } else {
         state.isConnect = true;
