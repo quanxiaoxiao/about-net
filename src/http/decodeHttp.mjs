@@ -131,7 +131,7 @@ const decodeHttp = (
                 || `${contentLength}` !== chunk.slice(indexSplit + 1).toString().trim()
                 || contentLength < 0
             ) {
-              throw new Error('parse headers fail, content-length invalid');
+              throw new HttpParserError('parse headers fail, content-length invalid', isRequest ? 400 : null);
             }
             state.headers[headerName] = contentLength;
           } else {

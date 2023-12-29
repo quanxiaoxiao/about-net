@@ -148,7 +148,7 @@ test('parseHeaders fail 1', async (t) => {
   }
 });
 
-test('parseHeaders fail 2', async (t) => {
+test('parseHeaders fail content-length 1', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -170,11 +170,37 @@ test('parseHeaders fail 2', async (t) => {
     await execute(Buffer.from('content-length: -1\r\n'));
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpParserError);
   }
 });
 
-test('parseHeaders fail 3', async (t) => {
+test('parseHeaders fail content-length 2', async (t) => {
+  t.plan(2);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: () => {
+      t.fail();
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.fail();
+    },
+  });
+
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  try {
+    await execute(Buffer.from('content-length: 010\r\n'));
+    t.fail();
+  } catch (error) {
+    t.true(error instanceof HttpParserError);
+  }
+});
+
+test('parseHeaders fail content-length 3', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -196,11 +222,11 @@ test('parseHeaders fail 3', async (t) => {
     await execute(Buffer.from('content-length: 10.\r\n'));
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpParserError);
   }
 });
 
-test('parseHeaders fail 4', async (t) => {
+test('parseHeaders fail content-length 4', async (t) => {
   t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -222,11 +248,11 @@ test('parseHeaders fail 4', async (t) => {
     await execute(Buffer.from('content-length: 10.4\r\n'));
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpParserError);
   }
 });
 
-test('parseHeaders fail 5', async (t) => {
+test('parseHeaders fail body exceed contentLength 1', async (t) => {
   t.plan(4);
   const execute = decodeHttpResponse({
     onStartLine: () => {
