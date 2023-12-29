@@ -1,11 +1,39 @@
 /* eslint no-use-before-define: 0 */
+import diagnosticsChannel from 'node:diagnostics_channel';
 import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
 
+const channels = {
+  connect: diagnosticsChannel.channel('about-net:request:connect'),
+};
+
+/**
+ * @typeof {{
+ *   path: string,
+ *   method: [string='GET'],
+ *   body?:  Buffer | string,
+  *  onChunk?:  (chunk: Buffer) => Promise<void>,
+  *  onStartLine?:  (a: Object) => Promise<void>,
+  *  onRequest?:  (a: Object) => Promise<void>,
+  *  onHeader?:  (a: Object) => Promise<void>,
+  *  onResponse?:  (a: Object) => Promise<void>,
+  *  onBody?:  (a: Object) => Promise<void>,
+ * }} RequestOption
+ *
+ */
+
+/**
+ * @param {RequestOption} options
+ * @param {Function} getConnect
+ */
 export default (
-  {
+  options,
+  getConnect,
+) => {
+  const {
+    _id,
     path,
     method = 'GET',
     body = null,
@@ -16,9 +44,7 @@ export default (
     onHeader,
     onResponse,
     onBody,
-  },
-  getConnect,
-) => {
+  } = options;
   const state = {
     isActive: true,
     tick: null,
@@ -53,7 +79,8 @@ export default (
     const emitError = (error) => {
       if (state.isActive) {
         state.isActive = false;
-        reject(error);
+        const err = typeof error === 'string' ? new Error(error) : error;
+        reject(err);
       }
     };
 
@@ -100,7 +127,7 @@ export default (
 
     function handleCloseOnRequestBody() {
       requestOptions.body.off('end', handleEndOnRequestBody);
-      emitError(new Error('request body stream close'));
+      emitError('request body stream close');
     }
 
     function closeRequestStream() {
@@ -191,9 +218,16 @@ export default (
       });
     }
 
+    const socket = getConnect();
+
     state.connector = createConnector(
       {
         onConnect: async () => {
+          channels.connect.publish({
+            ..._id == null ? {} : { _id },
+            remoteAddress: socket.remoteAddress,
+            remotePort: socket.remotePort,
+          });
           if (state.isActive) {
             clearTimeout(state.tick);
             state.dateTimeConnect = getCurrentDateTime();
@@ -210,7 +244,7 @@ export default (
               if (requestOptions.body && requestOptions.body.pipe) {
                 if (!requestOptions.body.readable) {
                   state.connector();
-                  emitError(new Error('request body stream unable read'));
+                  emitError('request body stream unable read');
                 } else {
                   try {
                     state.encodeRequest = encodeHttp({
@@ -293,22 +327,22 @@ export default (
           closeRequestStream();
         },
         onClose: () => {
-          emitError(new Error('socket is close'));
+          emitError('socket is close');
           closeRequestStream();
         },
       },
-      getConnect,
+      () => socket,
     );
 
     if (!state.connector) {
-      emitError(new Error('create connector fail'));
+      emitError('create connector fail');
       closeRequestStream();
     } else {
       state.tick = setTimeout(() => {
         if (state.isActive) {
           state.connector();
           closeRequestStream();
-          emitError(new Error('connect timeout'));
+          emitError('connect timeout');
         }
       }, 1000 * 30);
     }

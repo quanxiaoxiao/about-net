@@ -12,6 +12,6 @@
     "checkJs": true
   },
   "include": [
-    "src/createConnector.mjs"
+    "src/http/request.mjs"
   ]
 }
