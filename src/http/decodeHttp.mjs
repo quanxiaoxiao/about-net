@@ -161,6 +161,14 @@ const decodeHttp = (
     }
   };
 
+  const emitBody = async () => {
+    if (onBody && state.bodyBuf.length > 0) {
+      const bodyChunk = state.bodyBuf;
+      state.bodyBuf = Buffer.from([]);
+      await onBody(bodyChunk);
+    }
+  };
+
   const parseBodyWithContentLength = async () => {
     const contentLength = state.headers['content-length'];
     if (contentLength > 0) {
@@ -172,11 +180,7 @@ const decodeHttp = (
         ]);
         state.dataBuf = Buffer.from([]);
         state.size = 0;
-        if (onBody && state.bodyBuf.length > 0) {
-          const bodyChunk = state.bodyBuf;
-          state.bodyBuf = Buffer.from([]);
-          await onBody(bodyChunk);
-        }
+        await emitBody();
       } else {
         state.bodyBuf = Buffer.concat([
           state.bodyBuf,
@@ -186,11 +190,7 @@ const decodeHttp = (
         state.size = state.dataBuf.length;
         state.chunkSize = contentLength;
         state.step += 1;
-        if (onBody && state.bodyBuf.length > 0) {
-          const bodyChunk = state.bodyBuf;
-          state.bodyBuf = Buffer.from([]);
-          await onBody(bodyChunk);
-        }
+        await emitBody();
       }
     } else {
       state.step += 1;
@@ -219,11 +219,7 @@ const decodeHttp = (
           state.dataBuf = state.dataBuf.slice(state.chunkSize + 2);
           state.size = state.dataBuf.length;
           state.chunkSize = -1;
-          if (onBody && state.bodyBuf.length > 0) {
-            const bodyChunk = state.bodyBuf;
-            state.bodyBuf = Buffer.from([]);
-            await onBody(bodyChunk);
-          }
+          await emitBody();
           await parseBodyWithChunk();
         }
       }
