@@ -1,5 +1,6 @@
 import test from 'ava'; // eslint-disable-line
 import { decodeHttpResponse } from '../../src/http/decodeHttp.mjs';
+import { HttpParserError } from '../../src/http/errors.mjs';
 
 test('parseStartLine fail 1', async (t) => {
   t.plan(1);
@@ -47,7 +48,7 @@ test('parseStartLine fail 2', async (t) => {
     await execute(Buffer.from('HTTP/1.1 200s\r\n'));
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpParserError);
   }
 });
 
@@ -71,7 +72,31 @@ test('parseStartLine fail 3', async (t) => {
     await execute(Buffer.from('HTTP/1.1200\r\n'));
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpParserError);
+  }
+});
+
+test('parseStartLine fail 4', async (t) => {
+  t.plan(1);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.fail();
+    },
+    onHeader: () => {
+      t.fail();
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.fail();
+    },
+  });
+  try {
+    await execute(Buffer.from('HTTP/1.1 020\r\n'));
+    t.fail();
+  } catch (error) {
+    t.true(error instanceof HttpParserError);
   }
 });
 
@@ -98,26 +123,29 @@ test('parseStartLine', async (t) => {
 });
 
 test('parseHeaders fail 1', async (t) => {
-  t.plan(5);
+  t.plan(2);
   const execute = decodeHttpResponse({
     onStartLine: () => {
       t.pass();
     },
-    onHeader: (ret) => {
-      t.is(ret.headers['content-length'], 0);
-      t.is(ret.headersRaw.length, 0);
+    onHeader: () => {
+      t.fail();
     },
     onBody: () => {
       t.fail();
     },
     onEnd: () => {
-      t.pass();
+      t.fail();
     },
   });
 
   await execute(Buffer.from('HTTP/1.1 200\r\n'));
-  const ret = await execute(Buffer.from('\r\n'));
-  t.is(ret.headers['content-length'], 0);
+  try {
+    await execute(Buffer.from('aaaaa,bbbbb\r\n'));
+    t.fail();
+  } catch (error) {
+    t.true(error instanceof HttpParserError);
+  }
 });
 
 test('parseHeaders fail 2', async (t) => {
@@ -335,6 +363,29 @@ test('parseHeaders fail 9', async (t) => {
   } catch (error) {
     t.is(error.message, 'header fail');
   }
+});
+
+test('parseHeaders 0', async (t) => {
+  t.plan(5);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: (ret) => {
+      t.is(ret.headers['content-length'], 0);
+      t.is(ret.headersRaw.length, 0);
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
+  t.is(ret.headers['content-length'], 0);
 });
 
 test('parseHeaders 1', async (t) => {

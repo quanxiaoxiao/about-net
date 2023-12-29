@@ -1,6 +1,8 @@
 /* eslint prefer-destructuring: 0 */
+import assert from 'node:assert';
 import readHttpLine from './readHttpLine.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
+import { HttpParserError } from './errors.mjs';
 
 const crlf = Buffer.from([0x0d, 0x0a]);
 const MAX_CHUNK_SIZE = 1024 * 1024 * 800;
@@ -38,6 +40,7 @@ const decodeHttp = (
   const isBodyParseComplete = () => state.step >= 3;
 
   const parseStartLine = async () => {
+    assert(state.step === 0);
     const chunk = readHttpLine(
       state.dataBuf,
       0,
@@ -49,7 +52,7 @@ const decodeHttp = (
     const len = chunk.length;
     const matches = chunk.toString().match(isRequest ? REQUEST_STARTLINE_REG : RESPONSE_STARTLINE_REG);
     if (!matches) {
-      throw new Error('parse start line fail');
+      throw new HttpParserError('parse start line fail', isRequest ? 400 : null);
     }
     if (isRequest) {
       state.method = matches[1].toUpperCase();
@@ -58,7 +61,7 @@ const decodeHttp = (
     } else {
       if (matches[3]) {
         if (matches[3][0] !== ' ') {
-          throw new Error('parse start line fail');
+          throw new HttpParserError('parse start line fail');
         }
         const statusText = matches[3].trim();
         if (statusText !== '') {
@@ -67,6 +70,9 @@ const decodeHttp = (
       }
       state.httpVersion = matches[1];
       state.statusCode = parseInt(matches[2], 10);
+      if (Number.isNaN(state.statusCode) || `${state.statusCode}` !== matches[2]) {
+        throw new HttpParserError('parse start line fail');
+      }
     }
     state.dataBuf = state.dataBuf.slice(len + 2);
     state.size -= (len + 2);
@@ -107,7 +113,7 @@ const decodeHttp = (
       } else {
         const indexSplit = chunk.findIndex((b) => b === COLON_CHAR_CODE);
         if (indexSplit === -1) {
-          throw new Error(`parse headers fail, \`${chunk.toString()}\` invalid`);
+          throw new HttpParserError('parse headers fail', isRequest ? 400 : null);
         }
         const headerKey = chunk.slice(0, indexSplit).toString().trim();
         const value = chunk.slice(indexSplit + 1).toString().trim();
@@ -192,9 +198,7 @@ const decodeHttp = (
   };
 
   const parseBodyWithChunk = async () => {
-    if (isBodyParseComplete()) {
-      throw new Error('body already parse complete');
-    }
+    assert(!isBodyParseComplete());
     if (state.chunkSize !== -1) {
       if (state.chunkSize + 2 <= state.dataBuf.length) {
         if (state.dataBuf[state.chunkSize] !== crlf[0]
@@ -250,9 +254,7 @@ const decodeHttp = (
   };
 
   const parseBody = async () => {
-    if (isBodyParseComplete()) {
-      throw new Error('body already parse complete');
-    }
+    assert(!isBodyParseComplete());
     if ((state.headers['transfer-encoding'] || '').toLowerCase() === 'chunked') {
       await parseBodyWithChunk();
     } else {
@@ -283,9 +285,7 @@ const decodeHttp = (
   ];
 
   return async (chunk) => {
-    if (isBodyParseComplete()) {
-      throw new Error('already complete');
-    }
+    assert(!isBodyParseComplete());
 
     if (chunk && chunk.length > 0) {
       state.size += chunk.length;
