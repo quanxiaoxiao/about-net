@@ -326,6 +326,46 @@ test('write by socket close 2', async (t) => {
   server.close();
 });
 
+test('write1', async (t) => {
+  const port = getPort();
+  t.plan(5);
+  const server = net.createServer((socket) => {
+    socket.on('data', (chunk) => {
+      t.is(chunk.toString(), '123');
+    });
+    setTimeout(() => {
+      socket.destroy();
+    }, 200);
+  });
+  server.listen(port);
+  const connector = createConnector({
+    onConnect: () => {
+      t.is(connector.getState().outgoingBufList.length, 0);
+    },
+    onError: () => {
+      t.fail();
+    },
+    onData: () => {
+      t.fail();
+    },
+    onClose: () => {
+      t.pass();
+    },
+  }, () => {
+    const socket = net.Socket();
+    socket.connect({
+      host: '127.0.0.1',
+      port,
+    });
+    return socket;
+  });
+  t.is(connector.getState().outgoingBufList.length, 0);
+  connector.write(Buffer.from('123'));
+  t.is(connector.getState().outgoingBufList.length, 1);
+  await waitFor(1000);
+  server.close();
+});
+
 test('end 1', async (t) => {
   const port = getPort();
   t.plan(2);
