@@ -240,6 +240,7 @@ export default (
           });
           if (state.isActive) {
             clearTimeout(state.tick);
+            state.tick = null;
             state.dateTimeConnect = getCurrentDateTime();
             if (onRequest) {
               try {
@@ -335,10 +336,18 @@ export default (
         onError: (error) => {
           emitError(error);
           closeRequestStream();
+          if (state.tick != null) {
+            clearTimeout(state.tick);
+            state.tick = null;
+          }
         },
         onClose: () => {
           emitError('socket is close');
           closeRequestStream();
+          if (state.tick != null) {
+            clearTimeout(state.tick);
+            state.tick = null;
+          }
         },
       },
       () => socket,
@@ -347,12 +356,13 @@ export default (
     if (!state.connector) {
       emitError('create connector fail');
       closeRequestStream();
-    } else {
+    } else if (state.isActive) {
       state.tick = setTimeout(() => {
         if (state.isActive) {
           state.connector();
           closeRequestStream();
           emitError('connect timeout');
+          state.tick = null;
         }
       }, 1000 * 30);
     }
