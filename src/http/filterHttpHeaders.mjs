@@ -1,7 +1,7 @@
+import assert from 'node:assert';
+
 export default (headers, keys) => {
-  if (!Array.isArray(headers)) {
-    throw new Error('headers only support array');
-  }
+  assert(Array.isArray(headers));
   if (keys.length === 0) {
     return headers;
   }

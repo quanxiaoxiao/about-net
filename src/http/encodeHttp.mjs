@@ -6,6 +6,7 @@ import filterHttpHeaders from './filterHttpHeaders.mjs';
 
 const crlf = Buffer.from('\r\n');
 const HTTP_VERSION = '1.1';
+const BODY_CHUNK_END = Buffer.from('0\r\n\r\n');
 
 const generateHeadersBuf = (arr) => {
   const result = [];
@@ -146,7 +147,7 @@ const encodeHttp = (options) => {
       if (onEnd) {
         onEnd(state.contentSize);
       }
-      return Buffer.from('0\r\n\r\n');
+      return BODY_CHUNK_END;
     }
 
     const chunkSize = chunk.length;
