@@ -1,5 +1,6 @@
 /* eslint no-use-before-define: 0 */
 import diagnosticsChannel from 'node:diagnostics_channel';
+import { Buffer } from 'node:buffer';
 import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
@@ -76,6 +77,11 @@ export default (
   };
 
   return new Promise((resolve, reject) => {
+    const socket = getConnect();
+
+    /**
+     * @param {Error | string} error
+     */
     const emitError = (error) => {
       if (state.isActive) {
         state.isActive = false;
@@ -84,6 +90,9 @@ export default (
       }
     };
 
+    /**
+     * @param {Buffer} chunk
+     */
     function handleDataOnRequestBody(chunk) {
       if (state.isActive) {
         try {
@@ -106,6 +115,9 @@ export default (
       }
     }
 
+    /**
+     * @param {Error} error
+     */
     function handleErrorOnRequestBody(error) {
       emitError(error);
     }
@@ -217,8 +229,6 @@ export default (
         },
       });
     }
-
-    const socket = getConnect();
 
     state.connector = createConnector(
       {
