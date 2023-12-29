@@ -51,7 +51,7 @@ const encodeHttp = (options) => {
     } else if (Buffer.isBuffer(body) || typeof body === 'string') {
       state.contentLength = Buffer.byteLength(body);
     } else {
-      throw new Error('body is invalid');
+      throw new Error('body invalid');
     }
     if (state.contentLength !== 0) {
       keyValuePairList.push('Content-Length');
