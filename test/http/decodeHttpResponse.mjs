@@ -252,33 +252,6 @@ test('parseHeaders fail content-length 4', async (t) => {
   }
 });
 
-test('parseHeaders fail body exceed contentLength 1', async (t) => {
-  t.plan(4);
-  const execute = decodeHttpResponse({
-    onStartLine: () => {
-      t.pass();
-    },
-    onHeader: () => {
-      t.pass();
-    },
-    onBody: () => {
-      t.fail();
-    },
-    onEnd: () => {
-      t.pass();
-    },
-  });
-
-  await execute(Buffer.from('HTTP/1.1 200\r\n'));
-  await execute(Buffer.from('\r\n'));
-  try {
-    await execute(Buffer.from('2'));
-    t.fail();
-  } catch (error) {
-    t.pass();
-  }
-});
-
 test('parseHeaders fail 6', async (t) => {
   t.plan(5);
   const execute = decodeHttpResponse({
@@ -801,6 +774,70 @@ test('parseBody 1', async (t) => {
   t.is(ret.body.toString(), '');
 });
 
+test('parse body content-length, 1', async (t) => {
+  t.plan(7);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: () => {
+      t.pass();
+    },
+    onBody: (chunk) => {
+      t.is(chunk.toString(), '123');
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+  const ret = await execute(Buffer.from([
+    'HTTP/1.1 200',
+    'content-length:3',
+    '',
+    '12345',
+  ].join('\r\n')));
+  t.true(ret.complete);
+  t.is(ret.body.length, 0);
+  t.is(ret.dataBuf.toString(), '45');
+});
+
+test('parse body content-length, 2', async (t) => {
+  t.plan(8);
+  let i = 0;
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: () => {
+      t.pass();
+    },
+    onBody: (chunk) => {
+      if (i === 0) {
+        t.is(chunk.toString(), '1');
+      } else if (i === 1) {
+        t.is(chunk.toString(), '23');
+      } else {
+        t.fail();
+      }
+      i++;
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+  const ret = await execute(Buffer.from([
+    'HTTP/1.1 200',
+    'content-length:3',
+    '',
+    '1',
+  ].join('\r\n')));
+  t.true(!ret.complete);
+  t.is(ret.body.length, 0);
+  await execute(Buffer.from('2345'));
+  t.is(ret.body.length, 0);
+  t.is(ret.dataBuf.toString(), '45');
+});
+
 test('parseBody 2', async (t) => {
   t.plan(6);
   let i = 0;
@@ -1018,6 +1055,34 @@ test('parseBody 9', async (t) => {
   t.is(ret.dataBuf.toString(), 'abbb');
   try {
     await execute(Buffer.from('ccc'));
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+});
+
+test('parseHeaders fail, after complete', async (t) => {
+  t.plan(5);
+  const execute = decodeHttpResponse({
+    onStartLine: () => {
+      t.pass();
+    },
+    onHeader: () => {
+      t.pass();
+    },
+    onBody: () => {
+      t.fail();
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+
+  await execute(Buffer.from('HTTP/1.1 200\r\n'));
+  const ret = await execute(Buffer.from('\r\n'));
+  t.true(ret.complete);
+  try {
+    await execute(Buffer.from('2'));
     t.fail();
   } catch (error) {
     t.pass();
