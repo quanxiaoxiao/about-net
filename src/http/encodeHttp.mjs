@@ -1,5 +1,6 @@
 /* eslint no-nested-ternary: 0 */
 import http from 'node:http';
+import assert from 'node:assert';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
 
@@ -20,7 +21,7 @@ const generateHeadersBuf = (arr) => {
 
 const encodeHttp = (options) => {
   const state = {
-    completed: false,
+    complete: false,
     contentSize: 0,
   };
 
@@ -114,13 +115,11 @@ const encodeHttp = (options) => {
         throw new Error('body invalid');
       }
     }
-    if (state.completed) {
-      throw new Error('http request encode already completed');
-    }
+    assert(!state.complete);
     const chunk = data != null ? Buffer.from(data) : null;
 
     if (!chunk || chunk.length === 0) {
-      state.completed = true;
+      state.complete = true;
       if (state.contentSize === 0) {
         const headersBuf = generateHeadersBuf(keyValuePairList);
         if (onHeader) {
