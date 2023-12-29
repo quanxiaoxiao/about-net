@@ -802,7 +802,7 @@ test('parse body content-length, 1', async (t) => {
 });
 
 test('parse body content-length, 2', async (t) => {
-  t.plan(8);
+  t.plan(12);
   let i = 0;
   const execute = decodeHttpResponse({
     onStartLine: () => {
@@ -825,15 +825,18 @@ test('parse body content-length, 2', async (t) => {
       t.pass();
     },
   });
-  const ret = await execute(Buffer.from([
+  let ret = await execute(Buffer.from([
     'HTTP/1.1 200',
     'content-length:3',
     '',
     '1',
   ].join('\r\n')));
-  t.true(!ret.complete);
+  t.false(ret.complete);
   t.is(ret.body.length, 0);
-  await execute(Buffer.from('2345'));
+  t.is(ret.dataBuf.length, 0);
+  t.is(ret.headers['content-length'], 3);
+  ret = await execute(Buffer.from('2345'));
+  t.true(ret.complete);
   t.is(ret.body.length, 0);
   t.is(ret.dataBuf.toString(), '45');
 });
