@@ -106,6 +106,9 @@ export default (
             }
           }
         } catch (error) {
+          if (error instanceof HttpEncodeError) {
+            state.connector();
+          }
           emitError(error);
           requestOptions.body.off('data', handleDataOnRequestBody);
           requestOptions.body.destroy();
@@ -256,6 +259,9 @@ export default (
             state.connector.write(b);
           },
         });
+        if (!requestOptions.body.isPaused()) {
+          requestOptions.body.pause();
+        }
         requestOptions.body.once('error', handleErrorOnRequestBody);
         requestOptions.body.once('close', handleCloseOnRequestBody);
         requestOptions.body.once('end', handleEndOnRequestBody);
