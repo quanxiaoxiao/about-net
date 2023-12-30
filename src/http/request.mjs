@@ -153,7 +153,14 @@ export default (
         } else {
           try {
             state.dateTimeRequestSend = getCurrentDateTime();
+            channels.requestSend.publish({
+              ..._id == null ? {} : { _id },
+              data: requestOptions,
+            });
             outgoing(encodeHttp(requestOptions));
+            channels.requestComplete.publish({
+              ..._id == null ? {} : { _id },
+            });
           } catch (error) {
             state.connector();
             emitError(error);
@@ -184,6 +191,9 @@ export default (
       if (state.isActive) {
         try {
           outgoing(state.encodeRequest());
+          channels.requestComplete.publish({
+            ..._id == null ? {} : { _id },
+          });
         } catch (error) {
           emitError(error);
           state.connector();
@@ -307,6 +317,14 @@ export default (
           headers: requestOptions.headers,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
+            channels.requestSend.publish({
+              ..._id == null ? {} : { _id },
+              data: {
+                path: requestOptions.path,
+                method: requestOptions.method,
+                headers: requestOptions.headers,
+              },
+            });
             outgoing(Buffer.concat([
               chunkRequestHeaders,
               Buffer.from('\r\n'),
