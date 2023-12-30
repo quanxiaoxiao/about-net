@@ -342,13 +342,11 @@ export default (
                 if (onIncoming) {
                   onIncoming(chunk);
                 }
-                if (state.isActive) {
-                  try {
-                    await state.decode(chunk);
-                  } catch (error) {
-                    state.connector();
-                    handleError(error);
-                  }
+                try {
+                  await state.decode(chunk);
+                } catch (error) {
+                  state.connector();
+                  handleError(error);
                 }
               }
             }
