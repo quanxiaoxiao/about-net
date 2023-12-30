@@ -118,7 +118,7 @@ test('server response error 1', async (t) => {
   server.close();
 });
 
-test('request trigger error 1', async (t) => {
+test('trigger onRequest error 1', async (t) => {
   t.plan(2);
   const port = getPort();
   const server = net.createServer((socket) => {
@@ -153,23 +153,26 @@ test('request trigger error 1', async (t) => {
   server.close();
 });
 
-test('request trigger error 2', async (t) => {
+test('trigger onRequest error 2', async (t) => {
   t.plan(2);
   const port = getPort();
-  const server = net.createServer((socket) => {
+  const server = net.createServer(async (socket) => {
     socket.on('data', () => {
       t.fail();
     });
-    socket.write('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabc');
+    await waitFor(100);
+    socket.destroy();
   });
   server.listen(port);
   try {
     await request({
       path: '/',
+      onOutgoing: () => {
+        t.fail();
+      },
       onRequest: async () => {
         t.pass();
-        await waitFor(100);
-        throw new Error('aaa');
+        await waitFor(200);
       },
     }, () => {
       const socket = net.Socket();
@@ -181,14 +184,49 @@ test('request trigger error 2', async (t) => {
     });
     t.fail();
   } catch (error) {
-    t.is(error.message, 'request is not send');
+    t.pass();
+  }
+  await waitFor(500);
+  server.close();
+});
+
+test('trigger onRequest error 3', async (t) => {
+  t.plan(2);
+  const port = getPort();
+  const server = net.createServer(async (socket) => {
+    socket.on('data', () => {
+      t.fail();
+    });
+  });
+  server.listen(port);
+  try {
+    await request({
+      path: '/',
+      onOutgoing: () => {
+        t.fail();
+      },
+      onRequest: async (opt) => {
+        t.is(opt.body, null);
+        opt.body = 11;
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
   }
   await waitFor(500);
   server.close();
 });
 
 test('1', async (t) => {
-  t.plan(3);
+  t.plan(5);
   const port = getPort();
   const server = net.createServer((socket) => {
     socket.on('data', (chunk) => {
@@ -209,7 +247,14 @@ test('1', async (t) => {
     }, 100);
   });
   server.listen(port);
-  const ret = await request({}, () => {
+  const ret = await request({
+    onOutgoing: (chunk) => {
+      t.is(chunk.toString(), 'GET / HTTP/1.1\r\n\r\n');
+    },
+    onIncoming: (chunk) => {
+      t.is(chunk.toString(), 'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok');
+    },
+  }, () => {
     const socket = net.Socket();
     socket.connect({
       host: '127.0.0.1',

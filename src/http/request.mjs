@@ -5,7 +5,6 @@ import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
-import { HttpEncodeError } from '../errors.mjs';
 
 const channels = {
   connect: diagnosticsChannel.channel('about-net:request:connect'),
@@ -17,7 +16,6 @@ const channels = {
   *  path: [string='/'],
   *  method: [string='GET'],
   *  body?:  Buffer | string,
-  *  onChunk?:  (chunk: Buffer) => Promise<void>,
   *  onStartLine?:  (a: Object) => Promise<void>,
   *  onRequest?:  (a: Object) => Promise<void>,
   *  onHeader?:  (a: Object) => Promise<void>,
@@ -41,12 +39,13 @@ export default (
     method = 'GET',
     body = null,
     headers,
-    onChunk,
     onRequest,
     onStartLine,
     onHeader,
     onResponse,
     onBody,
+    onOutgoing,
+    onIncoming,
   } = options;
   const state = {
     isActive: true,
@@ -100,6 +99,7 @@ export default (
           handleError(error);
         }
       }
+
       if (state.isActive) {
         if (requestOptions.body && requestOptions.body.pipe) {
           if (!requestOptions.body.readable) {
@@ -110,15 +110,39 @@ export default (
           }
         } else {
           try {
-            const b = encodeHttp(requestOptions);
-            state.bytesOutgoing += b.length;
             state.dateTimeRequestSend = getCurrentDateTime();
-            state.connector.write(b);
+            outgining(encodeHttp(requestOptions));
           } catch (error) {
-            if (error instanceof HttpEncodeError) {
-              state.connector();
-            }
+            state.connector();
             emitError(error);
+          }
+        }
+      }
+    }
+
+    function outgining(chunk) {
+      if (state.isActive) {
+        if (!state.connector) {
+          handleError('connector is exist');
+        } else {
+          const size = chunk ? chunk.length : 0;
+          if (size > 0) {
+            if (onOutgoing) {
+              onOutgoing(chunk);
+            }
+            try {
+              state.bytesOutgoing += size;
+              const ret = state.connector.write(chunk);
+              if (!ret
+                && requestOptions.body
+                && requestOptions.body.pipe
+                && !requestOptions.body.isPaused()
+              ) {
+                requestOptions.body.pause();
+              }
+            } catch (error) {
+              handleError(error);
+            }
           }
         }
       }
@@ -130,20 +154,10 @@ export default (
     function handleDataOnRequestBody(chunk) {
       if (state.isActive) {
         try {
-          const b = state.encodeRequest(chunk);
-          if (b && b.length > 0) {
-            state.bytesOutgoing += b.length;
-            const ret = state.connector.write(b);
-            if (!ret) {
-              requestOptions.body.pause();
-            }
-          }
+          outgining(state.encodeRequest(chunk));
         } catch (error) {
-          if (error instanceof HttpEncodeError) {
-            state.connector();
-          }
+          state.connector();
           emitError(error);
-          requestOptions.body.off('data', handleDataOnRequestBody);
           requestOptions.body.destroy();
         }
       } else {
@@ -156,11 +170,7 @@ export default (
       requestOptions.body.off('close', handleCloseOnRequestBody);
       if (state.isActive) {
         try {
-          const ret = state.encodeRequest();
-          if (ret && ret.length > 0) {
-            state.bytesOutgoing += ret.length;
-            state.connector.write(ret);
-          }
+          outgining(state.encodeRequest());
         } catch (error) {
           emitError(error);
         }
@@ -277,12 +287,10 @@ export default (
           headers: requestOptions.headers,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
-            const b = Buffer.concat([
+            state.connector.write(Buffer.concat([
               chunkRequestHeaders,
               Buffer.from('\r\n'),
-            ]);
-            state.bytesOutgoing += b.length;
-            state.connector.write(b);
+            ]));
           },
         });
         if (!requestOptions.body.isPaused()) {
@@ -331,13 +339,8 @@ export default (
                 bindResponseDecode();
               }
               if (size > 0) {
-                if (onChunk) {
-                  try {
-                    await onChunk(chunk);
-                  } catch (error) {
-                    state.connector();
-                    handleError();
-                  }
+                if (onIncoming) {
+                  onIncoming(chunk);
                 }
                 if (state.isActive) {
                   try {
