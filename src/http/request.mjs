@@ -329,6 +329,7 @@ export default (
           path: requestOptions.path,
           method: requestOptions.method,
           headers: requestOptions.headers,
+          body: requestOptions.body,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
             channels.requestSend.publish({
@@ -343,15 +344,17 @@ export default (
               chunkRequestHeaders,
               Buffer.from('\r\n'),
             ]));
+            if (state.isActive) {
+              requestOptions.body.once('error', handleErrorOnRequestBody);
+              requestOptions.body.once('close', handleCloseOnRequestBody);
+              requestOptions.body.once('end', handleEndOnRequestBody);
+              requestOptions.body.on('data', handleDataOnRequestBody);
+              if (requestOptions.body.isPaused()) {
+                requestOptions.body.resume();
+              }
+            }
           },
         });
-        requestOptions.body.once('error', handleErrorOnRequestBody);
-        requestOptions.body.once('close', handleCloseOnRequestBody);
-        requestOptions.body.once('end', handleEndOnRequestBody);
-        requestOptions.body.on('data', handleDataOnRequestBody);
-        if (requestOptions.body.isPaused()) {
-          requestOptions.body.resume();
-        }
       } catch (error) {
         state.connector();
         handleError(error);
