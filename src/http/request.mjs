@@ -329,33 +329,29 @@ export default (
               state.dateTimeResponse = getCurrentDateTime();
               bindResponseDecode();
             }
-            if (size > 0 && onChunk) {
-              await onChunk(chunk);
-            }
-            try {
-              if (size > 0) {
-                await state.decode(chunk);
+            if (size > 0) {
+              if (onChunk) {
+                await onChunk(chunk);
               }
-            } catch (error) {
-              state.connector();
-              closeRequestStream();
-              emitError(error);
+              try {
+                await state.decode(chunk);
+              } catch (error) {
+                state.connector();
+                handleError(error);
+              }
             }
           } else {
             state.connector();
           }
         },
         onError: handleError,
-        onClose: () => {
-          handleError('socket is close');
-        },
+        onClose: () => handleError('socket is close'),
       },
       () => socket,
     );
 
     if (!state.connector) {
-      emitError('create connector fail');
-      closeRequestStream();
+      handleError('create connector fail');
     } else if (state.isActive) {
       state.tick = setTimeout(() => {
         if (state.isActive) {
