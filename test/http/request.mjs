@@ -251,3 +251,7 @@ test('6', async (t) => {
   await waitFor(500);
   server.close();
 });
+
+test('read stream 1', (t) => {
+  t.pass();
+});

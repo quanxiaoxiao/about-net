@@ -86,8 +86,7 @@ export default (
     const emitError = (error) => {
       if (state.isActive) {
         state.isActive = false;
-        const err = typeof error === 'string' ? new Error(error) : error;
-        reject(err);
+        reject(typeof error === 'string' ? new Error(error) : error);
       }
     };
 
@@ -231,6 +230,15 @@ export default (
       });
     }
 
+    function handleError(error) {
+      emitError(error);
+      closeRequestStream();
+      if (state.tick != null) {
+        clearTimeout(state.tick);
+        state.tick = null;
+      }
+    }
+
     state.connector = createConnector(
       {
         onConnect: async () => {
@@ -337,21 +345,9 @@ export default (
             state.connector();
           }
         },
-        onError: (error) => {
-          emitError(error);
-          closeRequestStream();
-          if (state.tick != null) {
-            clearTimeout(state.tick);
-            state.tick = null;
-          }
-        },
+        onError: handleError,
         onClose: () => {
-          emitError('socket is close');
-          closeRequestStream();
-          if (state.tick != null) {
-            clearTimeout(state.tick);
-            state.tick = null;
-          }
+          handleError('socket is close');
         },
       },
       () => socket,
