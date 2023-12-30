@@ -90,36 +90,6 @@ export default (
       }
     }
 
-    async function handleConnect() {
-      if (onRequest) {
-        try {
-          await onRequest(requestOptions);
-        } catch (error) {
-          state.connector();
-          handleError(error);
-        }
-      }
-
-      if (state.isActive) {
-        if (requestOptions.body && requestOptions.body.pipe) {
-          if (!requestOptions.body.readable) {
-            state.connector();
-            emitError('request body stream unable read');
-          } else {
-            pipe();
-          }
-        } else {
-          try {
-            state.dateTimeRequestSend = getCurrentDateTime();
-            outgoing(encodeHttp(requestOptions));
-          } catch (error) {
-            state.connector();
-            emitError(error);
-          }
-        }
-      }
-    }
-
     /**
      * @param {Buffer} [chunk]
      */
@@ -146,6 +116,36 @@ export default (
             } catch (error) {
               handleError(error);
             }
+          }
+        }
+      }
+    }
+
+    async function handleConnect() {
+      if (onRequest) {
+        try {
+          await onRequest(requestOptions);
+        } catch (error) {
+          state.connector();
+          handleError(error);
+        }
+      }
+
+      if (state.isActive) {
+        if (requestOptions.body && requestOptions.body.pipe) {
+          if (!requestOptions.body.readable) {
+            state.connector();
+            emitError('request body stream unable read');
+          } else {
+            pipe();
+          }
+        } else {
+          try {
+            state.dateTimeRequestSend = getCurrentDateTime();
+            outgoing(encodeHttp(requestOptions));
+          } catch (error) {
+            state.connector();
+            emitError(error);
           }
         }
       }
