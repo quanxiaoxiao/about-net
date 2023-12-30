@@ -296,7 +296,7 @@ export default (
           headers: requestOptions.headers,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
-            state.connector.write(Buffer.concat([
+            outgoing(Buffer.concat([
               chunkRequestHeaders,
               Buffer.from('\r\n'),
             ]));
