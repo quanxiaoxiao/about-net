@@ -1,6 +1,8 @@
 import net from 'node:net';
+import { PassThrough } from 'node:stream';
 import test from 'ava'; // eslint-disable-line
 import encodeHttp from '../../src/http/encodeHttp.mjs';
+import { decodeHttpRequest } from '../../src/http/decodeHttp.mjs';
 import { HttpEncodeError } from '../../src/errors.mjs';
 import request from '../../src/http/request.mjs';
 
@@ -414,6 +416,61 @@ test('onBody 1', async (t) => {
   server.close();
 });
 
-test('read stream 1', (t) => {
-  t.pass();
+test('read stream 1', async (t) => {
+  t.plan(6);
+  const port = getPort();
+  let i = 0;
+  const server = net.createServer((socket) => {
+    const decode = decodeHttpRequest({
+      onBody: (chunk) => {
+        if (i === 0) {
+          t.is(chunk.toString(), 'aaa');
+        } else if (i === 1) {
+          t.is(chunk.toString(), 'bbb');
+        } else {
+          t.fail();
+        }
+        i++;
+      },
+      onEnd: (ret) => {
+        t.is(ret.headers['transfer-encoding'], 'chunked');
+        socket.write('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabc');
+      },
+    });
+    socket.on('data', (chunk) => {
+      decode(chunk);
+    });
+    socket.on('close', () => {
+      t.pass();
+    });
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  setTimeout(() => {
+    pass.write('aaa');
+  }, 200);
+  setTimeout(() => {
+    pass.write('bbb');
+  }, 300);
+  setTimeout(() => {
+    pass.end();
+  }, 400);
+  const ret = await request({
+    path: '/aaa',
+    method: 'POST',
+    body: pass,
+    onBody: (chunk) => {
+      t.is(chunk.toString(), 'abc');
+    },
+  }, () => {
+    const socket = net.Socket();
+    socket.connect({
+      host: '127.0.0.1',
+      port,
+    });
+    return socket;
+  });
+  t.is(ret.body.length, 0);
+  await waitFor(3000);
+  server.close();
 });
