@@ -240,6 +240,32 @@ export default (
       }
     }
 
+    function pipe() {
+      try {
+        state.encodeRequest = encodeHttp({
+          path: requestOptions.path,
+          method: requestOptions.method,
+          headers: requestOptions.headers,
+          onHeader: (chunkRequestHeaders) => {
+            state.dateTimeRequestSend = getCurrentDateTime();
+            const b = Buffer.concat([
+              chunkRequestHeaders,
+              Buffer.from('\r\n'),
+            ]);
+            state.bytesOutgoing += b.length;
+            state.connector.write(b);
+          },
+        });
+        requestOptions.body.once('error', handleErrorOnRequestBody);
+        requestOptions.body.once('close', handleCloseOnRequestBody);
+        requestOptions.body.once('end', handleEndOnRequestBody);
+        requestOptions.body.on('data', handleDataOnRequestBody);
+      } catch (error) {
+        state.connector();
+        handleError(error);
+      }
+    }
+
     async function handleConnect() {
       if (onRequest) {
         try {
@@ -255,38 +281,14 @@ export default (
             state.connector();
             emitError('request body stream unable read');
           } else {
-            try {
-              state.encodeRequest = encodeHttp({
-                path: requestOptions.path,
-                method: requestOptions.method,
-                headers: requestOptions.headers,
-                onHeader: (chunkRequestHeaders) => {
-                  state.dateTimeRequestSend = getCurrentDateTime();
-                  const b = Buffer.concat([
-                    chunkRequestHeaders,
-                    Buffer.from('\r\n'),
-                  ]);
-                  state.bytesOutgoing += b.length;
-                  state.connector.write(b);
-                },
-              });
-              requestOptions.body.once('error', handleErrorOnRequestBody);
-              requestOptions.body.once('close', handleCloseOnRequestBody);
-              requestOptions.body.once('end', handleEndOnRequestBody);
-              requestOptions.body.on('data', handleDataOnRequestBody);
-            } catch (error) {
-              state.connector();
-              handleError(error);
-            }
+            pipe();
           }
         } else {
-          state.dateTimeRequestSend = getCurrentDateTime();
           try {
             const b = encodeHttp(requestOptions);
-            if (b.length > 0) {
-              state.bytesOutgoing += b.length;
-              state.connector.write(b);
-            }
+            state.bytesOutgoing += b.length;
+            state.dateTimeRequestSend = getCurrentDateTime();
+            state.connector.write(b);
           } catch (error) {
             if (error instanceof HttpEncodeError) {
               state.connector();
