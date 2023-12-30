@@ -3,6 +3,7 @@ import http from 'node:http';
 import assert from 'node:assert';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
+import { HttpEncodeError } from '../errors.mjs';
 
 const crlf = Buffer.from('\r\n');
 const HTTP_VERSION = '1.1';
@@ -52,7 +53,7 @@ const encodeHttp = (options) => {
     } else if (Buffer.isBuffer(body) || typeof body === 'string') {
       state.contentLength = Buffer.byteLength(body);
     } else {
-      throw new Error('body invalid');
+      throw new HttpEncodeError('body invalid');
     }
     if (state.contentLength !== 0) {
       keyValuePairList.push('Content-Length');
@@ -113,7 +114,7 @@ const encodeHttp = (options) => {
   return (data) => {
     if (data != null) {
       if (!Buffer.isBuffer(data) && typeof data !== 'string') {
-        throw new Error('body invalid');
+        throw new HttpEncodeError('body invalid');
       }
     }
     assert(!state.complete);

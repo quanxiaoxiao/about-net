@@ -5,6 +5,7 @@ import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
+import { HttpEncodeError } from '../errors.mjs';
 
 const channels = {
   connect: diagnosticsChannel.channel('about-net:request:connect'),
@@ -287,6 +288,9 @@ export default (
               state.connector.write(b);
             }
           } catch (error) {
+            if (error instanceof HttpEncodeError) {
+              state.connector();
+            }
             emitError(error);
             closeRequestStream();
           }
