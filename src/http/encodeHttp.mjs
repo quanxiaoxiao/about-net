@@ -84,15 +84,11 @@ const encodeHttp = (options) => {
   if (hasBody) {
     const headersBuf = generateHeadersBuf(keyValuePairList);
     if (onHeader) {
-      if (!onStartLine) {
-        onHeader(Buffer.concat([
-          startlineBuf,
-          crlf,
-          headersBuf,
-        ]));
-      } else {
-        onHeader(headersBuf);
-      }
+      const chunk = Buffer.concat([
+        ...onStartLine ? [] : [startlineBuf, crlf],
+        headersBuf,
+      ]);
+      onHeader(chunk);
     }
     const bufList = [
       startlineBuf,
