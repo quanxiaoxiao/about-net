@@ -112,15 +112,15 @@ export default (
         } else {
           const size = chunk ? chunk.length : 0;
           if (size > 0) {
-            if (onOutgoing) {
-              onOutgoing(chunk);
-            }
-            channels.outgoing.publish({
-              ..._id == null ? {} : { _id },
-              chunk,
-            });
             try {
               state.bytesOutgoing += size;
+              if (onOutgoing) {
+                onOutgoing(chunk);
+              }
+              channels.outgoing.publish({
+                ..._id == null ? {} : { _id },
+                chunk,
+              });
               const ret = state.connector.write(chunk);
               if (!ret
                 && requestOptions.body
@@ -131,6 +131,7 @@ export default (
               }
             } catch (error) {
               handleError(error);
+              state.connector();
             }
           }
         }
@@ -193,6 +194,7 @@ export default (
 
     function handleEndOnRequestBody() {
       requestOptions.body.off('close', handleCloseOnRequestBody);
+      requestOptions.body.off('error', handleErrorOnRequestBody);
       if (state.isActive) {
         try {
           outgoing(state.encodeRequest());
@@ -343,13 +345,13 @@ export default (
             ]));
           },
         });
-        if (!requestOptions.body.isPaused()) {
-          requestOptions.body.pause();
-        }
         requestOptions.body.once('error', handleErrorOnRequestBody);
         requestOptions.body.once('close', handleCloseOnRequestBody);
         requestOptions.body.once('end', handleEndOnRequestBody);
         requestOptions.body.on('data', handleDataOnRequestBody);
+        if (requestOptions.body.isPaused()) {
+          requestOptions.body.resume();
+        }
       } catch (error) {
         state.connector();
         handleError(error);
@@ -388,13 +390,13 @@ export default (
                 bindResponseDecode();
               }
               if (size > 0) {
-                channels.incoming.publish({
-                  ..._id == null ? {} : { _id },
-                });
-                if (onIncoming) {
-                  onIncoming(chunk);
-                }
                 try {
+                  if (onIncoming) {
+                    onIncoming(chunk);
+                  }
+                  channels.incoming.publish({
+                    ..._id == null ? {} : { _id },
+                  });
                   await state.decode(chunk);
                 } catch (error) {
                   state.connector();
