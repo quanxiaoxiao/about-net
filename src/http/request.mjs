@@ -275,8 +275,7 @@ export default (
               requestOptions.body.on('data', handleDataOnRequestBody);
             } catch (error) {
               state.connector();
-              emitError(error);
-              closeRequestStream();
+              handleError(error);
             }
           }
         } else {
