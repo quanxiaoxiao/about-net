@@ -8,6 +8,13 @@ import { decodeHttpResponse } from './decodeHttp.mjs';
 
 const channels = {
   connect: diagnosticsChannel.channel('about-net:request:connect'),
+  requestSend: diagnosticsChannel.channel('about-net:request:requestSend'),
+  requestComplete: diagnosticsChannel.channel('about-net:request:requestComplete'),
+  responseReceive: diagnosticsChannel.channel('about-net:request:responseReceive'),
+  responsComplete: diagnosticsChannel.channel('about-net:request:responsComplete'),
+  outgoing: diagnosticsChannel.channel('about-net:request:outgoing'),
+  incoming: diagnosticsChannel.channel('about-net:request:incoming'),
+  error: diagnosticsChannel.channel('about-net:request:error'),
 };
 
 /**
@@ -103,6 +110,10 @@ export default (
             if (onOutgoing) {
               onOutgoing(chunk);
             }
+            channels.outgoing.publish({
+              ..._id == null ? {} : { _id },
+              chunk,
+            });
             try {
               state.bytesOutgoing += size;
               const ret = state.connector.write(chunk);
