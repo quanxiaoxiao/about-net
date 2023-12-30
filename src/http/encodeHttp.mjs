@@ -176,7 +176,7 @@ const encodeHttp = (options) => {
           crlf,
         ]);
       }
-      if (onHeader && !isBodyStream) {
+      if (!isBodyStream) {
         onHeader(Buffer.concat([
           ...onStartLine ? [] : [startlineBuf, crlf],
           headersBuf,
