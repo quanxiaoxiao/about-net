@@ -234,15 +234,18 @@ export default (
     state.connector = createConnector(
       {
         onConnect: async () => {
+          const now = getCurrentDateTime();
           channels.connect.publish({
             ..._id == null ? {} : { _id },
             remoteAddress: socket.remoteAddress,
             remotePort: socket.remotePort,
+            dateTimeCreate: state.dateTimeCreate,
+            dateTimeConnect: now,
           });
           if (state.isActive) {
             clearTimeout(state.tick);
             state.tick = null;
-            state.dateTimeConnect = getCurrentDateTime();
+            state.dateTimeConnect = now;
             if (onRequest) {
               try {
                 await onRequest(requestOptions);
