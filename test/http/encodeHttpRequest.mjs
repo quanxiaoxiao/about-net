@@ -179,7 +179,7 @@ test('body 2', (t) => {
   t.is(ret.toString(), 'GET /test?name=bb HTTP/1.1\r\ncqq: 123\r\nContent-Length: 4\r\n\r\nquan');
 });
 
-test('onBody 1', (t) => {
+test('onBody transfer-encoding chunked 1', (t) => {
   t.plan(4);
   const execute = encodeHttpRequest({
     method: 'get',
@@ -203,6 +203,19 @@ test('onBody 1', (t) => {
   t.is(ret.toString(), '3\r\n123\r\n');
   ret = execute();
   t.is(ret.toString(), '0\r\n\r\n');
+});
+
+test('onBody transfer-encoding chunked 2', (t) => {
+  const execute = encodeHttpRequest({
+    method: 'get',
+    path: '/test',
+    headers: {
+      cqq: '123',
+    },
+  });
+
+  const ret = execute(null);
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
 });
 
 test('onBody 2', (t) => {
