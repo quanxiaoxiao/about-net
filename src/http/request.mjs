@@ -93,7 +93,12 @@ export default (
     function emitError(error) {
       if (state.isActive) {
         state.isActive = false;
-        reject(typeof error === 'string' ? new Error(error) : error);
+        const errObj = typeof error === 'string' ? new Error(error) : error;
+        channels.error.publish({
+          ..._id == null ? {} : { _id },
+          message: error.message,
+        });
+        reject(errObj);
       }
     }
 
@@ -222,6 +227,10 @@ export default (
     }
 
     function bindResponseDecode() {
+      channels.responseReceive.publish({
+        ..._id == null ? {} : { _id },
+      });
+      state.dateTimeResponse = getCurrentDateTime();
       state.decode = decodeHttpResponse({
         onStartLine: async (ret) => {
           state.statusCode = ret.statusCode;
@@ -271,12 +280,15 @@ export default (
           }
         },
         onEnd: () => {
-          state.dateTimeEnd = getCurrentDateTime();
-          if (state.dateTimeBody == null) {
-            state.dateTimeBody = state.dateTimeEnd;
-          }
           if (state.isActive) {
             state.isActive = false;
+            state.dateTimeEnd = getCurrentDateTime();
+            if (state.dateTimeBody == null) {
+              state.dateTimeBody = state.dateTimeEnd;
+            }
+            channels.responsComplete.publish({
+              ..._id == null ? {} : { _id },
+            });
             resolve({
               dateTimeCreate: state.dateTimeCreate,
               dateTimeConnect: state.dateTimeConnect,
@@ -373,10 +385,12 @@ export default (
               const size = chunk.length;
               state.bytesIncoming += size;
               if (!state.decode) {
-                state.dateTimeResponse = getCurrentDateTime();
                 bindResponseDecode();
               }
               if (size > 0) {
+                channels.incoming.publish({
+                  ..._id == null ? {} : { _id },
+                });
                 if (onIncoming) {
                   onIncoming(chunk);
                 }
