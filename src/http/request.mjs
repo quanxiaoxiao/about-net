@@ -294,7 +294,6 @@ export default (
               state.connector();
             }
             emitError(error);
-            closeRequestStream();
           }
         }
       }
