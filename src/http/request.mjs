@@ -255,13 +255,13 @@ export default (
               dateTimeBody: state.dateTimeBody,
               dateTimeEnd: state.dateTimeEnd,
               dateTimeRequestSend: state.dateTimeRequestSend,
-              statusCode: state.statusCode,
-              httpVersion: state.httpVersion,
-              statusText: state.statusText,
-              headers: state.headers,
               bytesIncoming: state.bytesIncoming,
               bytesOutgoing: state.bytesOutgoing,
+              httpVersion: state.httpVersion,
+              statusCode: state.statusCode,
+              statusText: state.statusText,
               headersRaw: state.headersRaw,
+              headers: state.headers,
               body: state.body,
             });
             state.connector.end();

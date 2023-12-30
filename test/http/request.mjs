@@ -388,17 +388,19 @@ test('4', async (t) => {
   server.close();
 });
 
-test('6', async (t) => {
-  t.plan(1);
+test('onBody 1', async (t) => {
+  t.plan(2);
   const port = getPort();
   const server = net.createServer((socket) => {
     socket.on('data', () => {
+      socket.end('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabcdefg');
     });
-    socket.end('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabcdefg');
   });
   server.listen(port);
   const ret = await request({
-    onBody: () => {},
+    onBody: (chunk) => {
+      t.is(chunk.toString(), 'abc');
+    },
   }, () => {
     const socket = net.Socket();
     socket.connect({
