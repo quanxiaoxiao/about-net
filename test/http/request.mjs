@@ -273,6 +273,177 @@ test('trigger onResponse error 1', async (t) => {
   server.close();
 });
 
+test('body read stream error close', async (t) => {
+  t.plan(4);
+  const port = getPort();
+  let i = 0;
+  const server = net.createServer((socket) => {
+    const decode = decodeHttpRequest({
+      onBody: (chunk) => {
+        if (i === 0) {
+          t.is(chunk.toString(), 'aaa');
+        } else if (i === 1) {
+          t.is(chunk.toString(), 'bbb');
+        } else {
+          t.fail();
+        }
+        i++;
+      },
+      onEnd: () => {
+        t.fail();
+      },
+    });
+    socket.on('data', (chunk) => {
+      decode(chunk);
+    });
+    socket.on('close', () => {
+      t.pass();
+    });
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  setTimeout(() => {
+    pass.write('aaa');
+  }, 200);
+  setTimeout(() => {
+    pass.write('bbb');
+  }, 300);
+  setTimeout(() => {
+    pass.destroy();
+  }, 400);
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  await waitFor(3000);
+  server.close();
+});
+
+test('request fail body read stream close 1', async (t) => {
+  const pass = new PassThrough();
+  t.false(pass.destroyed);
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.256',
+        port: 5544,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  t.true(pass.destroyed);
+});
+
+test('request fail body read stream close 2', async (t) => {
+  const port = getPort();
+  t.plan(4);
+  const server = net.createServer((socket) => {
+    t.pass();
+    socket.destroy();
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  t.false(pass.destroyed);
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  t.true(pass.destroyed);
+  await waitFor();
+  server.close();
+});
+
+test('body read stream socket error close', async (t) => {
+  t.plan(4);
+  const port = getPort();
+  let i = 0;
+  const server = net.createServer((socket) => {
+    const decode = decodeHttpRequest({
+      onBody: (chunk) => {
+        if (i === 0) {
+          t.is(chunk.toString(), 'aaa');
+        } else if (i === 1) {
+          t.is(chunk.toString(), 'bbb');
+          socket.destroy();
+        } else {
+          t.fail();
+        }
+        i++;
+      },
+      onEnd: () => {
+        t.fail();
+      },
+    });
+    socket.on('data', (chunk) => {
+      decode(chunk);
+    });
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  setTimeout(() => {
+    pass.write('aaa');
+  }, 200);
+  setTimeout(() => {
+    pass.write('bbb');
+  }, 300);
+  setTimeout(() => {
+    t.true(pass.destroyed);
+  }, 400);
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  await waitFor(3000);
+  server.close();
+});
+
 test('1', async (t) => {
   t.plan(5);
   const port = getPort();
