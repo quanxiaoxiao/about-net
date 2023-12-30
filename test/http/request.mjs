@@ -1,6 +1,7 @@
 import net from 'node:net';
 import test from 'ava'; // eslint-disable-line
 import encodeHttp from '../../src/http/encodeHttp.mjs';
+import { HttpEncodeError } from '../../src/errors.mjs';
 import request from '../../src/http/request.mjs';
 
 const _getPort = () => {
@@ -191,9 +192,12 @@ test('trigger onRequest error 2', async (t) => {
 });
 
 test('trigger onRequest error 3', async (t) => {
-  t.plan(2);
+  t.plan(3);
   const port = getPort();
   const server = net.createServer(async (socket) => {
+    socket.on('close', () => {
+      t.pass();
+    });
     socket.on('data', () => {
       t.fail();
     });
@@ -219,7 +223,7 @@ test('trigger onRequest error 3', async (t) => {
     });
     t.fail();
   } catch (error) {
-    t.pass();
+    t.true(error instanceof HttpEncodeError);
   }
   await waitFor(500);
   server.close();
