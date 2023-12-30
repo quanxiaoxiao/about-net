@@ -11,7 +11,7 @@ const channels = {
   requestSend: diagnosticsChannel.channel('about-net:request:requestSend'),
   requestComplete: diagnosticsChannel.channel('about-net:request:requestComplete'),
   responseReceive: diagnosticsChannel.channel('about-net:request:responseReceive'),
-  responsComplete: diagnosticsChannel.channel('about-net:request:responsComplete'),
+  responseComplete: diagnosticsChannel.channel('about-net:request:responseComplete'),
   outgoing: diagnosticsChannel.channel('about-net:request:outgoing'),
   incoming: diagnosticsChannel.channel('about-net:request:incoming'),
   error: diagnosticsChannel.channel('about-net:request:error'),
@@ -163,10 +163,10 @@ export default (
               ..._id == null ? {} : { _id },
               data: requestOptions,
             });
-            outgoing(encodeHttp(requestOptions));
             channels.requestComplete.publish({
               ..._id == null ? {} : { _id },
             });
+            outgoing(encodeHttp(requestOptions));
           } catch (error) {
             state.connector();
             emitError(error);
@@ -197,10 +197,10 @@ export default (
       requestOptions.body.off('error', handleErrorOnRequestBody);
       if (state.isActive) {
         try {
-          outgoing(state.encodeRequest());
           channels.requestComplete.publish({
             ..._id == null ? {} : { _id },
           });
+          outgoing(state.encodeRequest());
         } catch (error) {
           emitError(error);
           state.connector();
@@ -288,7 +288,7 @@ export default (
             if (state.dateTimeBody == null) {
               state.dateTimeBody = state.dateTimeEnd;
             }
-            channels.responsComplete.publish({
+            channels.responseComplete.publish({
               ..._id == null ? {} : { _id },
             });
             resolve({
