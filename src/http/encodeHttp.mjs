@@ -46,20 +46,7 @@ const encodeHttp = (options) => {
   );
 
   const hasBody = Object.hasOwnProperty.call(options, 'body');
-
-  if (hasBody) {
-    if (body == null) {
-      state.contentLength = 0;
-    } else if (Buffer.isBuffer(body) || typeof body === 'string') {
-      state.contentLength = Buffer.byteLength(body);
-    } else {
-      throw new HttpEncodeError('body invalid');
-    }
-    if (state.contentLength !== 0) {
-      keyValuePairList.push('Content-Length');
-      keyValuePairList.push(state.contentLength);
-    }
-  }
+  const isBodyStream = options.body && (typeof options.body.pipe === 'function');
 
   const startLines = [];
   const isRequest = method != null;
@@ -81,30 +68,48 @@ const encodeHttp = (options) => {
     onStartLine(startlineBuf);
   }
 
+  if (isBodyStream) {
+    keyValuePairList.push('Transfer-Encoding');
+    keyValuePairList.push('chunked');
+  } else if (hasBody) {
+    if (body == null) {
+      state.contentLength = 0;
+    } else if (Buffer.isBuffer(body) || typeof body === 'string') {
+      state.contentLength = Buffer.byteLength(body);
+    } else {
+      throw new HttpEncodeError('body invalid');
+    }
+    if (state.contentLength !== 0) {
+      keyValuePairList.push('Content-Length');
+      keyValuePairList.push(state.contentLength);
+    }
+  }
+
   if (hasBody) {
     const headersBuf = generateHeadersBuf(keyValuePairList);
     if (onHeader) {
-      const chunk = Buffer.concat([
+      onHeader(Buffer.concat([
         ...onStartLine ? [] : [startlineBuf, crlf],
         headersBuf,
-      ]);
-      onHeader(chunk);
+      ]));
     }
-    const bufList = [
-      startlineBuf,
-      crlf,
-      headersBuf,
-      crlf,
-    ];
-    if (state.contentLength > 0) {
-      bufList.push(Buffer.isBuffer(body) ? body : Buffer.from(body));
-    }
-    const dataChunk = Buffer.concat(bufList);
-    if (onEnd) {
-      onEnd(state.contentLength);
-    }
+    if (!isBodyStream) {
+      const bufList = [
+        startlineBuf,
+        crlf,
+        headersBuf,
+        crlf,
+      ];
+      if (state.contentLength > 0) {
+        bufList.push(Buffer.isBuffer(body) ? body : Buffer.from(body));
+      }
+      const dataChunk = Buffer.concat(bufList);
+      if (onEnd) {
+        onEnd(state.contentLength);
+      }
 
-    return dataChunk;
+      return dataChunk;
+    }
   }
 
   return (data) => {
@@ -121,15 +126,19 @@ const encodeHttp = (options) => {
       if (state.contentSize === 0) {
         const headersBuf = generateHeadersBuf(keyValuePairList);
         if (onHeader) {
-          if (!onStartLine) {
-            onHeader(Buffer.concat([
-              startlineBuf,
+          if (isBodyStream) {
+            if (onEnd) {
+              onEnd(0);
+            }
+            return Buffer.concat([
               crlf,
-              headersBuf,
-            ]));
-          } else {
-            onHeader(headersBuf);
+              BODY_CHUNK_END,
+            ]);
           }
+          onHeader(Buffer.concat([
+            ...onStartLine ? [] : [startlineBuf, crlf],
+            headersBuf,
+          ]));
         }
         if (onEnd) {
           onEnd(0);
@@ -139,6 +148,7 @@ const encodeHttp = (options) => {
           crlf,
           headersBuf,
           crlf,
+          ...isBodyStream ? [BODY_CHUNK_END] : [],
         ]);
       }
       if (onEnd) {
@@ -164,14 +174,11 @@ const encodeHttp = (options) => {
           crlf,
         ]);
       }
-      if (!onStartLine) {
+      if (onHeader && !isBodyStream) {
         onHeader(Buffer.concat([
-          startlineBuf,
-          crlf,
+          ...onStartLine ? [] : [startlineBuf, crlf],
           headersBuf,
         ]));
-      } else {
-        onHeader(headersBuf);
       }
     }
     state.contentSize += chunkSize;

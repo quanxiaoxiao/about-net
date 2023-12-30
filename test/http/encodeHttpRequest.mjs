@@ -1,3 +1,4 @@
+import { PassThrough } from 'node:stream';
 import test from 'ava'; // eslint-disable-line
 import encodeHttpRequest from '../../src/http/encodeHttp.mjs'; // eslint-disable-line
 
@@ -321,4 +322,62 @@ test('onBody 5', (t) => {
   bufList.push(execute(Buffer.from('123')));
   bufList.push(execute(Buffer.from('2')));
   bufList.push(execute(Buffer.from('2')));
+});
+
+test('body stream 1', (t) => {
+  const pass = new PassThrough();
+  t.plan(1);
+  encodeHttpRequest({
+    method: 'post',
+    path: '/test',
+    body: pass,
+    headers: {
+      'content-length': 5,
+    },
+    onHeader: (buf) => {
+      t.is(buf.toString(), Buffer.concat([
+        Buffer.from('POST /test HTTP/1.1\r\n'),
+        Buffer.from('Transfer-Encoding: chunked\r\n'),
+      ]).toString());
+    },
+  });
+});
+
+test('body stream 2', (t) => {
+  const pass = new PassThrough();
+  const execute = encodeHttpRequest({
+    method: 'post',
+    path: '/test',
+    body: pass,
+    headers: {
+      'content-length': 5,
+    },
+  });
+  const ret = execute();
+  t.is(ret.toString(), 'POST /test HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n');
+  t.pass();
+});
+
+test('body stream 3', (t) => {
+  const pass = new PassThrough();
+  t.plan(3);
+  const execute = encodeHttpRequest({
+    method: 'post',
+    path: '/test',
+    body: pass,
+    headers: {
+      'content-length': 5,
+    },
+    onHeader: (buf) => {
+      t.is(buf.toString(), Buffer.concat([
+        Buffer.from('POST /test HTTP/1.1\r\n'),
+        Buffer.from('Transfer-Encoding: chunked\r\n'),
+      ]).toString());
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+  const ret = execute();
+  t.is(ret.toString(), '\r\n0\r\n\r\n');
 });
