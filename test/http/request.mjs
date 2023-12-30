@@ -118,6 +118,75 @@ test('server response error 1', async (t) => {
   server.close();
 });
 
+test('request trigger error 1', async (t) => {
+  t.plan(2);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('data', () => {
+      t.fail();
+      socket.write('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabc');
+    });
+  });
+  server.listen(port);
+  try {
+    const ret = await request({
+      path: '/',
+      onRequest: async () => {
+        t.pass();
+        await waitFor(100);
+        throw new Error('aaa');
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    console.log(ret);
+    t.fail();
+  } catch (error) {
+    t.is(error.message, 'aaa');
+  }
+  await waitFor(500);
+  server.close();
+});
+
+test('request trigger error 2', async (t) => {
+  t.plan(2);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('data', () => {
+      t.fail();
+    });
+    socket.write('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabc');
+  });
+  server.listen(port);
+  try {
+    await request({
+      path: '/',
+      onRequest: async () => {
+        t.pass();
+        await waitFor(100);
+        throw new Error('aaa');
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.is(error.message, 'request is not send');
+  }
+  await waitFor(500);
+  server.close();
+});
+
 test('1', async (t) => {
   t.plan(3);
   const port = getPort();

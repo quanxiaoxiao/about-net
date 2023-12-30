@@ -141,12 +141,12 @@ test('onError at connect 2', async (t) => {
     const socket = net.Socket();
     socket.connect({
       host: '127.0.0.258',
-      port: 9988,
+      port: 9989,
     });
     return socket;
   });
   t.is(typeof connector, 'function');
-  await waitFor();
+  await waitFor(500);
 });
 
 test('onConnect and onClose', async (t) => {
