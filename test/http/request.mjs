@@ -355,6 +355,36 @@ test('request fail body read stream close 1', async (t) => {
   t.true(pass.destroyed);
 });
 
+test('request fail body read stream close 3', async (t) => {
+  t.plan(2);
+  const port = getPort();
+  const server = net.createServer(() => {
+    t.pass();
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  pass.destroy();
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  await waitFor();
+  server.close();
+});
+
 test('request fail body read stream close 2', async (t) => {
   const port = getPort();
   t.plan(4);
