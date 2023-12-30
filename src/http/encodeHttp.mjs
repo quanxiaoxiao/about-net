@@ -160,8 +160,10 @@ const encodeHttp = (options) => {
     const chunkSize = chunk.length;
     const lineBuf = Buffer.from(`${chunkSize.toString(16)}\r\n`);
     if (state.contentSize === 0) {
-      keyValuePairList.push('Transfer-Encoding');
-      keyValuePairList.push('chunked');
+      if (!isBodyStream) {
+        keyValuePairList.push('Transfer-Encoding');
+        keyValuePairList.push('chunked');
+      }
       const headersBuf = generateHeadersBuf(keyValuePairList);
       if (!onHeader) {
         state.contentSize = chunkSize;

@@ -381,3 +381,20 @@ test('body stream 3', (t) => {
   const ret = execute();
   t.is(ret.toString(), '\r\n0\r\n\r\n');
 });
+
+test('body stream 4', (t) => {
+  const pass = new PassThrough();
+  t.plan(3);
+  const execute = encodeHttpRequest({
+    method: 'post',
+    path: '/test',
+    body: pass,
+    onEnd: () => {
+      t.pass();
+    },
+  });
+  let ret = execute('aa');
+  t.is(ret.toString(), 'POST /test HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n2\r\naa\r\n');
+  ret = execute();
+  t.is(ret.toString(), '0\r\n\r\n');
+});
