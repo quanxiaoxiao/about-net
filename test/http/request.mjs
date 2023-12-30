@@ -229,6 +229,48 @@ test('trigger onRequest error 3', async (t) => {
   server.close();
 });
 
+test('trigger onResponse error 1', async (t) => {
+  t.plan(3);
+  const port = getPort();
+  const server = net.createServer(async (socket) => {
+    socket.on('close', () => {
+      t.pass();
+    });
+    socket.on('data', () => {
+      socket.write(encodeHttp({
+        statusCode: 400,
+        body: 'ok',
+      }));
+    });
+  });
+  server.listen(port);
+  try {
+    await request({
+      path: '/',
+      onResponse: async (ret) => {
+        t.is(ret.statusCode, 400);
+        await waitFor(100);
+        throw new Error('bbbb');
+      },
+      onBody: () => {
+        t.fail();
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.is(error.message, 'bbbb');
+  }
+  await waitFor(500);
+  server.close();
+});
+
 test('1', async (t) => {
   t.plan(5);
   const port = getPort();
