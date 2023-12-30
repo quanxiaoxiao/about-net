@@ -111,7 +111,7 @@ export default (
         } else {
           try {
             state.dateTimeRequestSend = getCurrentDateTime();
-            outgining(encodeHttp(requestOptions));
+            outgoing(encodeHttp(requestOptions));
           } catch (error) {
             state.connector();
             emitError(error);
@@ -120,7 +120,10 @@ export default (
       }
     }
 
-    function outgining(chunk) {
+    /**
+     * @param {Buffer} [chunk]
+     */
+    function outgoing(chunk) {
       if (state.isActive) {
         if (!state.connector) {
           handleError('connector is exist');
@@ -154,11 +157,10 @@ export default (
     function handleDataOnRequestBody(chunk) {
       if (state.isActive) {
         try {
-          outgining(state.encodeRequest(chunk));
+          outgoing(state.encodeRequest(chunk));
         } catch (error) {
           state.connector();
-          emitError(error);
-          requestOptions.body.destroy();
+          handleError(error);
         }
       } else {
         requestOptions.body.off('data', handleDataOnRequestBody);
@@ -170,9 +172,10 @@ export default (
       requestOptions.body.off('close', handleCloseOnRequestBody);
       if (state.isActive) {
         try {
-          outgining(state.encodeRequest());
+          outgoing(state.encodeRequest());
         } catch (error) {
           emitError(error);
+          state.connector();
         }
       }
     }
@@ -180,6 +183,12 @@ export default (
     function handleCloseOnRequestBody() {
       requestOptions.body.off('end', handleEndOnRequestBody);
       emitError('request body stream close');
+      state.connector();
+    }
+
+    function handleErrorOnRequestBody(error) {
+      emitError(error);
+      state.connector();
     }
 
     function closeRequestStream() {
@@ -296,7 +305,7 @@ export default (
         if (!requestOptions.body.isPaused()) {
           requestOptions.body.pause();
         }
-        requestOptions.body.once('error', emitError);
+        requestOptions.body.once('error', handleErrorOnRequestBody);
         requestOptions.body.once('close', handleCloseOnRequestBody);
         requestOptions.body.once('end', handleEndOnRequestBody);
         requestOptions.body.on('data', handleDataOnRequestBody);
