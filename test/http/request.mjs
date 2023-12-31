@@ -591,6 +591,54 @@ test('4', async (t) => {
   server.close();
 });
 
+test('response onBody error 1', async (t) => {
+  t.plan(5);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('close', () => {
+      t.pass();
+    });
+    socket.on('data', () => {
+      socket.write('HTTP/1.1 200\r\nContent-Length: 6\r\n\r\nab');
+      setTimeout(() => {
+        socket.write('cd');
+      }, 100);
+      setTimeout(() => {
+        t.true(socket.destroyed);
+      }, 120);
+    });
+  });
+  server.listen(port);
+  let i = 0;
+  try {
+    await request({
+      onBody: (chunk) => {
+        if (i === 0) {
+          t.is(chunk.toString(), 'ab');
+        } else if (i === 1) {
+          t.is(chunk.toString(), 'cd');
+          throw new Error();
+        } else {
+          t.fail();
+        }
+        i += 1;
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.pass();
+  }
+  await waitFor(1000);
+  server.close();
+});
+
 test('onBody 1', async (t) => {
   t.plan(2);
   const port = getPort();
