@@ -1,6 +1,10 @@
 /* eslint max-classes-per-file: 0 */
 
 export class HttpParserError extends Error {
+  /**
+   * @param {string} [message]
+   * @param {number} [statusCode]
+   */
   constructor(message, statusCode) {
     super(message);
     this.message = message || 'HTTP Parser Error';
@@ -8,6 +12,9 @@ export class HttpParserError extends Error {
   }
 }
 export class HttpEncodeError extends Error {
+  /**
+   * @param {string} [message]
+   */
   constructor(message) {
     super(message);
     this.message = message || 'HTTP Encode Error';
@@ -15,6 +22,9 @@ export class HttpEncodeError extends Error {
 }
 
 export class ConnectorWriteAfterActiveError extends Error {
+  /**
+   * @param {string} [message]
+   */
   constructor(message) {
     super(message);
     this.message = message || 'Connector Write Error, is not active';

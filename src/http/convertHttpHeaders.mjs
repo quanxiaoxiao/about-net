@@ -1,3 +1,11 @@
+/**
+ * @typedef {Object<string, string | Array<string>>} KeyValueObj
+ */
+
+/**
+ * @param {KeyValueObj} obj
+ * @returns {Array<string>}
+ */
 const convertObjToArray = (obj) => {
   const result = [];
   const keys = Object.keys(obj);
@@ -17,7 +25,12 @@ const convertObjToArray = (obj) => {
   return result;
 };
 
-export default (data, hostname) => {
+/**
+ * @param {KeyValueObj | Array<string>} [data]
+ * @param {string} [hostname='']
+ * @returns {Array<string>}
+ */
+export default (data, hostname = '') => {
   if (!hostname && !data) {
     return [];
   }
@@ -32,7 +45,10 @@ export default (data, hostname) => {
   }
   const headerList = [];
   if (!Array.isArray(data)) {
-    headerList.push(...convertObjToArray(data));
+    const arr = convertObjToArray(data || {});
+    if (arr.length > 0) {
+      headerList.push(...arr);
+    }
   } else {
     for (let i = 0; i < data.length;) {
       const key = data[i];

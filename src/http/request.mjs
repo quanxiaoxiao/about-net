@@ -22,12 +22,14 @@ const channels = {
   *  _id?: string,
   *  path: [string='/'],
   *  method: [string='GET'],
-  *  body?:  Buffer | string,
-  *  onStartLine?:  (a: Object) => Promise<void>,
+  *  body?:  Buffer | string | import('node:stream').ReadableStream,
   *  onRequest?:  (a: Object) => Promise<void>,
+  *  onStartLine?:  (a: Object) => Promise<void>,
   *  onHeader?:  (a: Object) => Promise<void>,
   *  onResponse?:  (a: Object) => Promise<void>,
   *  onBody?:  (a: Object) => Promise<void>,
+  *  onOutgoing?: (a: Buffer) => void,
+  *  onIncoming?: (a: Buffer) => void,
  * }} RequestOption
  *
  */
