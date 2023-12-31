@@ -5,6 +5,7 @@ import convertHttpHeaders from './convertHttpHeaders.mjs';
 import handleResponse from './handleResponse.mjs';
 
 export default async ({
+  _id,
   hostname,
   path,
   port = 443,
@@ -12,7 +13,8 @@ export default async ({
   body = null,
   headers,
   onBody,
-  onChunk,
+  onIncoming,
+  onOutgoing,
   onStartLine,
   onHeader,
   onRequest,
@@ -22,11 +24,13 @@ export default async ({
 }) => {
   const responseItem = await request(
     {
+      _id,
       path,
       method,
       headers: convertHttpHeaders(headers, hostname),
       body,
-      onChunk,
+      onIncoming,
+      onOutgoing,
       onBody,
       onRequest,
       onResponse,

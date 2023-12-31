@@ -59,6 +59,7 @@ export default (
   const state = {
     isActive: true,
     tick: null,
+    connector: null,
     dateTimeCreate: getCurrentDateTime(),
     dateTimeConnect: null,
     dateTimeRequestSend: null,
@@ -76,7 +77,6 @@ export default (
     headers: {},
     headersRaw: [],
     encodeRequest: null,
-    connector: null,
   };
 
   const requestOptions = {
