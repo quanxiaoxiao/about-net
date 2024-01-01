@@ -96,7 +96,7 @@ export default (
     function emitError(error) {
       if (state.isActive) {
         state.isActive = false;
-        if (signal) {
+        if (state.connector && signal) {
           signal.removeEventListener('abort', handleAbortOnSignal);
         }
         const errObj = typeof error === 'string' ? new Error(error) : error;
@@ -145,7 +145,9 @@ export default (
     }
 
     async function handleConnect() {
-      if (onRequest) {
+      if (!state.isActive) {
+        state.connector();
+      } else if (onRequest) {
         try {
           await onRequest(requestOptions);
         } catch (error) {
