@@ -18,7 +18,7 @@ test('onStartLine 1', (t) => {
     },
     body: null,
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onStartLine 2', (t) => {
@@ -30,7 +30,7 @@ test('onStartLine 2', (t) => {
       cqq: '123',
     },
   });
-  t.is(ret.toString(), 'GET /test? HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test? HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onHeader 1', (t) => {
@@ -43,10 +43,10 @@ test('onHeader 1', (t) => {
     },
     body: null,
     onHeader: (buf) => {
-      t.true(buf.equals(Buffer.from('GET /test HTTP/1.1\r\ncqq: 123\r\n')));
+      t.true(buf.equals(Buffer.from('GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n')));
     },
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onHeader 2', (t) => {
@@ -62,13 +62,13 @@ test('onHeader 2', (t) => {
       t.pass();
     },
     onHeader: (buf) => {
-      t.true(buf.equals(Buffer.from('cqq: 123\r\n')));
+      t.true(buf.equals(Buffer.from('cqq: 123\r\nContent-Length: 0\r\n')));
     },
     onEnd: (size) => {
       t.is(size, 0);
     },
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onHeader 3', (t) => {
@@ -80,7 +80,7 @@ test('onHeader 3', (t) => {
       cqq: '123',
     },
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onHeader 4', (t) => {
@@ -93,7 +93,7 @@ test('onHeader 4', (t) => {
     },
     body: null,
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nquan: bbb\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nquan: bbb\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onEnd 2', (t) => {
@@ -106,7 +106,20 @@ test('onEnd 2', (t) => {
       t.is(size, 0);
     },
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\nContent-Length: 0\r\n\r\n');
+});
+
+test('body empty 1', (t) => {
+  t.plan(2);
+  const ret = encodeHttpRequest({
+    method: 'get',
+    path: '/test',
+    body: '',
+    onEnd: (size) => {
+      t.is(size, 0);
+    },
+  });
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onEnd 3', (t) => {
@@ -118,7 +131,7 @@ test('onEnd 3', (t) => {
     },
     body: null,
   });
-  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('onEnd 4', (t) => {
@@ -130,7 +143,7 @@ test('onEnd 4', (t) => {
       cqq: '123',
     },
   });
-  t.is(ret.toString(), 'GET /test?c=a HTTP/1.1\r\ncqq: 123\r\n\r\n');
+  t.is(ret.toString(), 'GET /test?c=a HTTP/1.1\r\ncqq: 123\r\nContent-Length: 0\r\n\r\n');
 });
 
 test('body 1', (t) => {

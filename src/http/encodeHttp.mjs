@@ -79,7 +79,7 @@ const encodeHttp = (options) => {
     } else {
       throw new HttpEncodeError('body invalid');
     }
-    if (state.contentLength !== 0) {
+    if (state.contentLength != null) {
       keyValuePairList.push('Content-Length');
       keyValuePairList.push(state.contentLength);
     }

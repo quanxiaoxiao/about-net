@@ -498,7 +498,7 @@ test('1', async (t) => {
   server.listen(port);
   const ret = await request({
     onOutgoing: (chunk) => {
-      t.is(chunk.toString(), 'GET / HTTP/1.1\r\n\r\n');
+      t.is(chunk.toString(), 'GET / HTTP/1.1\r\nContent-Length: 0\r\n\r\n');
     },
     onIncoming: (chunk) => {
       t.is(chunk.toString(), 'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok');

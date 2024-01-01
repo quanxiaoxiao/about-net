@@ -8,5 +8,5 @@ test('onStartLine 1', (t) => {
     statusText: 'Connection Established',
     body: null,
   });
-  t.is(ret.toString(), 'HTTP/1.0 200 Connection Established\r\n\r\n');
+  t.is(ret.toString(), 'HTTP/1.0 200 Connection Established\r\nContent-Length: 0\r\n\r\n');
 });
