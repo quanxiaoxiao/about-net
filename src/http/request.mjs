@@ -57,37 +57,44 @@ export default (
     onIncoming,
     signal,
   } = options;
-  const state = {
-    isActive: true,
-    tick: null,
-    connector: null,
-    dateTimeCreate: getCurrentDateTime(),
-    dateTimeConnect: null,
-    dateTimeRequestSend: null,
-    bytesIncoming: 0,
-    bytesOutgoing: 0,
-    dateTimeResponse: null,
-    dateTimeHeader: null,
-    dateTimeBody: null,
-    dateTimeEnd: null,
-    body: Buffer.from([]),
-    decode: null,
-    statusCode: null,
-    httpVersion: null,
-    statusText: null,
-    headers: {},
-    headersRaw: [],
-    encodeRequest: null,
-  };
 
-  const requestOptions = {
-    path,
-    method,
-    headers,
-    body,
-  };
+  if (signal && signal.aborted) {
+    if (body && body.pipe && !body.destroyed) {
+      body.destroy();
+    }
+    return Promise.reject(new Error('abort'));
+  }
 
   return new Promise((resolve, reject) => {
+    const state = {
+      isActive: true,
+      tick: null,
+      connector: null,
+      dateTimeCreate: getCurrentDateTime(),
+      dateTimeConnect: null,
+      dateTimeRequestSend: null,
+      bytesIncoming: 0,
+      bytesOutgoing: 0,
+      dateTimeResponse: null,
+      dateTimeHeader: null,
+      dateTimeBody: null,
+      dateTimeEnd: null,
+      body: Buffer.from([]),
+      decode: null,
+      statusCode: null,
+      httpVersion: null,
+      statusText: null,
+      headers: {},
+      headersRaw: [],
+      encodeRequest: null,
+    };
+
+    const requestOptions = {
+      path,
+      method,
+      headers,
+      body,
+    };
     const socket = getConnect();
 
     /**
