@@ -3,17 +3,15 @@ import createConnector from './createConnector.mjs';
 export default async (
   socketSource,
   {
-    sourceBufList = [],
     getConnect,
+    sourceBufList = [],
     onClose,
     onError,
     onConnect,
+    onIncoming,
+    onOutgoing,
   },
 ) => {
-  if (socketSource.readyState !== 'open' || socketSource.destroyed) {
-    return;
-  }
-
   const state = {
     source: null,
     dest: null,
@@ -44,6 +42,9 @@ export default async (
   state.source = createConnector({
     onData: (chunk) => {
       if (state.isActive) {
+        if (onOutgoing) {
+          onOutgoing(chunk);
+        }
         if (!state.dest) {
           state.source.pause();
           state.sourceBufList.push(chunk);
@@ -87,6 +88,7 @@ export default async (
       onConnect: () => {
         if (state.isActive) {
           clearTimeout(state.tick);
+          state.tick = null;
           state.source.resume();
           if (onConnect) {
             onConnect();
@@ -107,6 +109,9 @@ export default async (
       onError: handleError,
       onData: (chunk) => {
         if (state.isActive) {
+          if (onIncoming) {
+            onIncoming(chunk);
+          }
           try {
             const ret = state.source.write(chunk);
             if (!ret) {
@@ -138,7 +143,7 @@ export default async (
       }
       if (state.isActive) {
         state.tick = setTimeout(() => {
-          if (state.tick) {
+          if (state.isActive && state.tick) {
             handleError(new Error('connect dest timeout'));
           }
         }, 1000 * 10);
