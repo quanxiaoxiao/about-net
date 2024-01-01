@@ -55,6 +55,7 @@ export default (
     onBody,
     onOutgoing,
     onIncoming,
+    signal,
   } = options;
   const state = {
     isActive: true,
@@ -95,6 +96,9 @@ export default (
     function emitError(error) {
       if (state.isActive) {
         state.isActive = false;
+        if (signal) {
+          signal.removeEventListener('abort', handleAbortOnSignal);
+        }
         const errObj = typeof error === 'string' ? new Error(error) : error;
         channels.error.publish({
           ..._id == null ? {} : { _id },
@@ -204,8 +208,8 @@ export default (
           });
           outgoing(state.encodeRequest());
         } catch (error) {
-          emitError(error);
           state.connector();
+          emitError(error);
         }
       }
     }
@@ -293,6 +297,9 @@ export default (
             channels.responseComplete.publish({
               ..._id == null ? {} : { _id },
             });
+            if (signal) {
+              signal.removeEventListener('abort', handleAbortOnSignal);
+            }
             resolve({
               dateTimeCreate: state.dateTimeCreate,
               dateTimeConnect: state.dateTimeConnect,
@@ -363,18 +370,31 @@ export default (
       }
     }
 
+    function handleAbortOnSignal() {
+      if (state.isActive) {
+        state.isActive = false;
+        state.connector();
+        closeRequestStream();
+        channels.error.publish({
+          ..._id == null ? {} : { _id },
+          message: 'abort',
+        });
+        reject(new Error('abort'));
+      }
+    }
+
     state.connector = createConnector(
       {
         onConnect: async () => {
-          const now = getCurrentDateTime();
-          channels.connect.publish({
-            ..._id == null ? {} : { _id },
-            remoteAddress: socket.remoteAddress,
-            remotePort: socket.remotePort,
-            dateTimeCreate: state.dateTimeCreate,
-            dateTimeConnect: now,
-          });
           if (state.isActive) {
+            const now = getCurrentDateTime();
+            channels.connect.publish({
+              ..._id == null ? {} : { _id },
+              remoteAddress: socket.remoteAddress,
+              remotePort: socket.remotePort,
+              dateTimeCreate: state.dateTimeCreate,
+              dateTimeConnect: now,
+            });
             clearTimeout(state.tick);
             state.tick = null;
             state.dateTimeConnect = now;
@@ -439,6 +459,13 @@ export default (
           state.tick = null;
         }
       }, 1000 * 30);
+      if (signal) {
+        signal.addEventListener(
+          'abort',
+          handleAbortOnSignal,
+          { once: true },
+        );
+      }
     }
   });
 };

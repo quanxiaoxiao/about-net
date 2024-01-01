@@ -723,3 +723,99 @@ test('read stream 1', async (t) => {
   await waitFor(3000);
   server.close();
 });
+
+test('abort 1', async (t) => {
+  t.plan(4);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('close', () => {
+      t.pass();
+    });
+    socket.on('data', () => {
+      t.pass();
+    });
+  });
+  server.listen(port);
+  const controller = new AbortController();
+  setTimeout(() => {
+    controller.abort();
+  }, 100);
+  try {
+    await request({
+      path: '/',
+      signal: controller.signal,
+      onRequest: () => {
+        t.pass();
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.true(controller.signal.aborted);
+  }
+  await waitFor(500);
+  server.close();
+});
+
+test('read stream abort', async (t) => {
+  t.plan(4);
+  const port = getPort();
+  let i = 0;
+  const server = net.createServer((socket) => {
+    const decode = decodeHttpRequest({
+      onBody: (chunk) => {
+        if (i === 0) {
+          t.is(chunk.toString(), 'aaa');
+        } else {
+          t.fail();
+        }
+        i++;
+      },
+      onEnd: () => {
+        t.fail();
+      },
+    });
+    socket.on('data', (chunk) => {
+      decode(chunk);
+    });
+    socket.on('close', () => {
+      t.pass();
+    });
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  const controller = new AbortController();
+  setTimeout(() => {
+    pass.write('aaa');
+  }, 200);
+  setTimeout(() => {
+    controller.abort();
+    t.true(pass.destroyed);
+  }, 300);
+  try {
+    await request({
+      path: '/aaa',
+      method: 'POST',
+      body: pass,
+      signal: controller.signal,
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.true(controller.signal.aborted);
+  }
+  await waitFor(3000);
+  server.close();
+});
