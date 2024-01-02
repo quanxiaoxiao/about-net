@@ -1,6 +1,5 @@
 import net from 'node:net';
 import request from './request.mjs';
-import handleResponse from './handleResponse.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
 
 export default async ({
@@ -11,6 +10,7 @@ export default async ({
   method = 'GET',
   body = null,
   headers,
+  signal,
   onBody,
   onIncoming,
   onOutgoing,
@@ -26,6 +26,7 @@ export default async ({
       method,
       headers: convertHttpHeaders(headers, hostname),
       body,
+      signal,
       onBody,
       onStartLine,
       onHeader,
@@ -44,5 +45,5 @@ export default async ({
     },
   );
 
-  return handleResponse(responseItem);
+  return responseItem;
 };

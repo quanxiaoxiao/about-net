@@ -8,6 +8,7 @@ import enpack from './enpack.mjs';
 import depack from './depack.mjs';
 import generateID from './generateID.mjs';
 import parseUrl from './parseUrl.mjs';
+import decodeContentToJSON from './decodeContentToJSON.mjs';
 
 import dns from './dns/index.mjs';
 import cert from './cert/index.mjs';
@@ -28,6 +29,7 @@ export {
   enpack,
   depack,
   parseUrl,
+  decodeContentToJSON,
 
   http,
   dns,

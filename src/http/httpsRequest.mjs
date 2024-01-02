@@ -2,7 +2,6 @@ import tls from 'node:tls';
 import net from 'node:net';
 import request from './request.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
-import handleResponse from './handleResponse.mjs';
 
 export default async ({
   _id,
@@ -12,6 +11,7 @@ export default async ({
   method = 'GET',
   body = null,
   headers,
+  signal,
   onBody,
   onIncoming,
   onOutgoing,
@@ -29,6 +29,7 @@ export default async ({
       method,
       headers: convertHttpHeaders(headers, hostname),
       body,
+      signal,
       onIncoming,
       onOutgoing,
       onBody,
@@ -54,5 +55,5 @@ export default async ({
     },
   );
 
-  return handleResponse(responseItem);
+  return responseItem;
 };
