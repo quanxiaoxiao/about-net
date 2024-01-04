@@ -63,12 +63,7 @@ export default (
     signal,
   } = options;
 
-  if (signal && signal.aborted) {
-    if (body && body.pipe && !body.destroyed) {
-      body.destroy();
-    }
-    return Promise.reject(new Error('abort'));
-  }
+  assert(signal ? !signal.aborted : true);
 
   return new Promise((resolve, reject) => {
     const state = {
@@ -102,6 +97,7 @@ export default (
       headers,
       body,
     };
+
     const socket = getConnect();
 
     /**

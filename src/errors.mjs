@@ -51,3 +51,23 @@ export class SocketCloseError extends Error {
     this.message = message || 'Socket Close Error';
   }
 }
+
+export class NotIsSocketError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Invalid';
+  }
+}
+
+export class SocketUnableOperateError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Unalbe Operate';
+  }
+}

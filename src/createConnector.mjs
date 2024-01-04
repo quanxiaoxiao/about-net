@@ -2,6 +2,11 @@
 import tls from 'node:tls';
 import net from 'node:net';
 import assert from 'node:assert';
+import {
+  NotIsSocketError,
+  SocketUnableOperateError,
+  SocketConnectError,
+} from './errors.mjs';
 
 // net.Socket.CONNECTING -> net.Socket.OPEN -> net.Socket.CLOSED
 
@@ -42,7 +47,7 @@ const createConnector = (
   }
 
   if (!(socket instanceof tls.TLSSocket) && !(socket instanceof net.Socket)) {
-    emitError('connect socket invalid');
+    emitError(new NotIsSocketError());
     return null;
   }
 
@@ -50,7 +55,7 @@ const createConnector = (
     || !socket.writable
     || !socket.readable
   ) {
-    emitError('socket already destroy');
+    emitError(new SocketUnableOperateError());
     return null;
   }
 
@@ -99,7 +104,7 @@ const createConnector = (
     if (state.isActive) {
       if (!socket.remoteAddress) {
         state.isActive = true;
-        emitError('socket connect fail');
+        emitError(new SocketConnectError());
         destroy();
       } else {
         state.isConnect = true;
