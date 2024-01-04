@@ -1,5 +1,6 @@
 /* eslint no-use-before-define: 0 */
 import diagnosticsChannel from 'node:diagnostics_channel';
+import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
@@ -18,7 +19,7 @@ const channels = {
 };
 
 /**
- * @typeof {{
+ * @typedef {{
   *  _id?: string,
   *  path: [string='/'],
   *  method: [string='GET'],
@@ -119,33 +120,32 @@ export default (
      * @param {Buffer} [chunk]
      */
     function outgoing(chunk) {
-      if (state.isActive) {
-        if (!state.connector) {
-          handleError('connector is exist');
-        } else {
-          const size = chunk ? chunk.length : 0;
-          if (size > 0) {
-            try {
-              state.bytesOutgoing += size;
-              if (onOutgoing) {
-                onOutgoing(chunk);
-              }
-              channels.outgoing.publish({
-                ..._id == null ? {} : { _id },
-                chunk,
-              });
-              const ret = state.connector.write(chunk);
-              if (!ret
-                && requestOptions.body
-                && requestOptions.body.pipe
-                && !requestOptions.body.isPaused()
-              ) {
-                requestOptions.body.pause();
-              }
-            } catch (error) {
-              handleError(error);
-              state.connector();
+      assert(state.isActive);
+      if (!state.connector) {
+        handleError('connector is exist');
+      } else {
+        const size = chunk ? chunk.length : 0;
+        if (size > 0) {
+          try {
+            state.bytesOutgoing += size;
+            if (onOutgoing) {
+              onOutgoing(chunk);
             }
+            channels.outgoing.publish({
+              ..._id == null ? {} : { _id },
+              chunk,
+            });
+            const ret = state.connector.write(chunk);
+            if (!ret
+              && requestOptions.body
+              && requestOptions.body.pipe
+              && !requestOptions.body.isPaused()
+            ) {
+              requestOptions.body.pause();
+            }
+          } catch (error) {
+            handleError(error);
+            state.connector();
           }
         }
       }
