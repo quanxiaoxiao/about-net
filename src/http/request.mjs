@@ -6,6 +6,10 @@ import createConnector from '../createConnector.mjs';
 import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
+import {
+  SocketConnectError,
+  SocketCloseError,
+} from '../errors.mjs';
 
 const channels = {
   connect: diagnosticsChannel.channel('about-net:request:connect'),
@@ -69,10 +73,11 @@ export default (
   return new Promise((resolve, reject) => {
     const state = {
       isActive: true,
+      isConnect: false,
       tick: null,
       connector: null,
-      bodyPending: false,
       dateTimeCreate: getCurrentDateTime(),
+      bodyPending: false,
       dateTimeConnect: null,
       dateTimeRequestSend: null,
       bytesIncoming: 0,
@@ -288,13 +293,10 @@ export default (
           }
           if (bodyChunk && bodyChunk.length > 0) {
             if (onBody) {
-              if (state.bodyPending) {
-                state.connector.pause();
-              }
               state.bodyPending = true;
               await onBody(bodyChunk);
-              state.connector.resume();
               state.bodyPending = false;
+              state.connector.resume();
             } else {
               state.body = Buffer.concat([
                 state.body,
@@ -403,6 +405,7 @@ export default (
       {
         onConnect: async () => {
           if (state.isActive) {
+            state.isConnect = true;
             const now = getCurrentDateTime();
             channels.connect.publish({
               ..._id == null ? {} : { _id },
@@ -421,6 +424,9 @@ export default (
         },
         onData: async (chunk) => {
           if (state.isActive) {
+            if (state.bodyPending) {
+              state.connector.pause();
+            }
             if (state.dateTimeRequestSend == null) {
               state.connector();
               handleError('request is not send');
@@ -458,8 +464,16 @@ export default (
             requestOptions.body.resume();
           }
         },
-        onError: handleError,
-        onClose: () => handleError('socket is close'),
+        onError: (error) => {
+          if (state.isConnect) {
+            handleError(error);
+          } else {
+            handleError(new SocketConnectError());
+          }
+        },
+        onClose: () => {
+          handleError(new SocketCloseError());
+        },
       },
       () => socket,
     );

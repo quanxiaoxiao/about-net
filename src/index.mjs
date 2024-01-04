@@ -14,6 +14,7 @@ import dns from './dns/index.mjs';
 import cert from './cert/index.mjs';
 import http from './http/index.mjs';
 import net from './net/index.mjs';
+import * as errors from './errors.mjs';
 
 const getDateNow = () => Math.floor(getCurrentDateTime());
 
@@ -30,6 +31,8 @@ export {
   depack,
   parseUrl,
   decodeContentToJSON,
+
+  errors,
 
   http,
   dns,

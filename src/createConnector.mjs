@@ -89,13 +89,9 @@ const createConnector = (
   }
 
   function handleDrain() {
-    if (state.isActive) {
-      if (onDrain) {
-        onDrain();
-      }
-    } else {
-      socket.off('drain', handleDrain);
-      destroy();
+    assert(state.isActive);
+    if (onDrain) {
+      onDrain();
     }
   }
 

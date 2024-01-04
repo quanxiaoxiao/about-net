@@ -11,6 +11,7 @@ export class HttpParserError extends Error {
     this.statusCode = statusCode || null;
   }
 }
+
 export class HttpEncodeError extends Error {
   /**
    * @param {string} [message]
@@ -28,5 +29,25 @@ export class ConnectorWriteAfterActiveError extends Error {
   constructor(message) {
     super(message);
     this.message = message || 'Connector Write Error, is not active';
+  }
+}
+
+export class SocketConnectError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Connect Error';
+  }
+}
+
+export class SocketCloseError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Close Error';
   }
 }
