@@ -71,6 +71,7 @@ export default (
       isActive: true,
       tick: null,
       connector: null,
+      bodyPending: false,
       dateTimeCreate: getCurrentDateTime(),
       dateTimeConnect: null,
       dateTimeRequestSend: null,
@@ -287,7 +288,13 @@ export default (
           }
           if (bodyChunk && bodyChunk.length > 0) {
             if (onBody) {
+              if (state.bodyPending) {
+                state.connector.pause();
+              }
+              state.bodyPending = true;
               await onBody(bodyChunk);
+              state.connector.resume();
+              state.bodyPending = false;
             } else {
               state.body = Buffer.concat([
                 state.body,
