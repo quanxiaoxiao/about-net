@@ -1,5 +1,4 @@
 /* eslint no-use-before-define: 0 */
-import diagnosticsChannel from 'node:diagnostics_channel';
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import createConnector from '../createConnector.mjs';
@@ -9,18 +8,8 @@ import { decodeHttpResponse } from './decodeHttp.mjs';
 import {
   SocketConnectError,
   SocketCloseError,
+  SocketConnectTimeoutError,
 } from '../errors.mjs';
-
-const channels = {
-  connect: diagnosticsChannel.channel('about-net:request:connect'),
-  requestSend: diagnosticsChannel.channel('about-net:request:requestSend'),
-  requestComplete: diagnosticsChannel.channel('about-net:request:requestComplete'),
-  responseReceive: diagnosticsChannel.channel('about-net:request:responseReceive'),
-  responseComplete: diagnosticsChannel.channel('about-net:request:responseComplete'),
-  outgoing: diagnosticsChannel.channel('about-net:request:outgoing'),
-  incoming: diagnosticsChannel.channel('about-net:request:incoming'),
-  error: diagnosticsChannel.channel('about-net:request:error'),
-};
 
 /**
  * @typedef {{
@@ -48,7 +37,6 @@ export default (
   getConnect,
 ) => {
   const {
-    _id,
     path = '/',
     method = 'GET',
     body = null,
@@ -110,10 +98,6 @@ export default (
           signal.removeEventListener('abort', handleAbortOnSignal);
         }
         const errObj = typeof error === 'string' ? new Error(error) : error;
-        channels.error.publish({
-          ..._id == null ? {} : { _id },
-          message: error.message,
-        });
         reject(errObj);
       }
     }
@@ -133,10 +117,6 @@ export default (
             if (onOutgoing) {
               onOutgoing(chunk);
             }
-            channels.outgoing.publish({
-              ..._id == null ? {} : { _id },
-              chunk,
-            });
             const ret = state.connector.write(chunk);
             if (!ret
               && requestOptions.body
@@ -176,13 +156,6 @@ export default (
         } else {
           try {
             state.dateTimeRequestSend = getCurrentDateTime();
-            channels.requestSend.publish({
-              ..._id == null ? {} : { _id },
-              data: requestOptions,
-            });
-            channels.requestComplete.publish({
-              ..._id == null ? {} : { _id },
-            });
             outgoing(encodeHttp(requestOptions));
           } catch (error) {
             state.connector();
@@ -214,9 +187,6 @@ export default (
       requestOptions.body.off('error', handleErrorOnRequestBody);
       if (state.isActive) {
         try {
-          channels.requestComplete.publish({
-            ..._id == null ? {} : { _id },
-          });
           outgoing(state.encodeRequest());
         } catch (error) {
           state.connector();
@@ -246,9 +216,6 @@ export default (
     }
 
     function bindResponseDecode() {
-      channels.responseReceive.publish({
-        ..._id == null ? {} : { _id },
-      });
       state.dateTimeResponse = getCurrentDateTime();
       state.decode = decodeHttpResponse({
         onStartLine: async (ret) => {
@@ -264,6 +231,7 @@ export default (
           }
         },
         onHeader: async (ret) => {
+          assert(state.isActive);
           state.dateTimeHeader = getCurrentDateTime();
           state.headers = ret.headers;
           state.headersRaw = ret.headersRaw;
@@ -273,6 +241,7 @@ export default (
               headersRaw: state.headersRaw,
             });
           }
+          assert(state.isActive);
           if (onResponse) {
             await onResponse({
               statusCode: state.statusCode,
@@ -284,6 +253,7 @@ export default (
           }
         },
         onBody: async (bodyChunk) => {
+          assert(state.isActive);
           if (state.dateTimeBody == null) {
             state.dateTimeBody = getCurrentDateTime();
           }
@@ -302,37 +272,33 @@ export default (
           }
         },
         onEnd: () => {
-          if (state.isActive) {
-            state.isActive = false;
-            state.dateTimeEnd = getCurrentDateTime();
-            if (state.dateTimeBody == null) {
-              state.dateTimeBody = state.dateTimeEnd;
-            }
-            channels.responseComplete.publish({
-              ..._id == null ? {} : { _id },
-            });
-            if (signal) {
-              signal.removeEventListener('abort', handleAbortOnSignal);
-            }
-            resolve({
-              dateTimeCreate: state.dateTimeCreate,
-              dateTimeConnect: state.dateTimeConnect,
-              dateTimeResponse: state.dateTimeResponse,
-              dateTimeHeader: state.dateTimeHeader,
-              dateTimeBody: state.dateTimeBody,
-              dateTimeEnd: state.dateTimeEnd,
-              dateTimeRequestSend: state.dateTimeRequestSend,
-              bytesIncoming: state.bytesIncoming,
-              bytesOutgoing: state.bytesOutgoing,
-              httpVersion: state.httpVersion,
-              statusCode: state.statusCode,
-              statusText: state.statusText,
-              headersRaw: state.headersRaw,
-              headers: state.headers,
-              body: state.body,
-            });
-            state.connector.end();
+          assert(state.isActive);
+          state.isActive = false;
+          state.dateTimeEnd = getCurrentDateTime();
+          if (state.dateTimeBody == null) {
+            state.dateTimeBody = state.dateTimeEnd;
           }
+          if (signal) {
+            signal.removeEventListener('abort', handleAbortOnSignal);
+          }
+          resolve({
+            dateTimeCreate: state.dateTimeCreate,
+            dateTimeConnect: state.dateTimeConnect,
+            dateTimeResponse: state.dateTimeResponse,
+            dateTimeHeader: state.dateTimeHeader,
+            dateTimeBody: state.dateTimeBody,
+            dateTimeEnd: state.dateTimeEnd,
+            dateTimeRequestSend: state.dateTimeRequestSend,
+            bytesIncoming: state.bytesIncoming,
+            bytesOutgoing: state.bytesOutgoing,
+            httpVersion: state.httpVersion,
+            statusCode: state.statusCode,
+            statusText: state.statusText,
+            headersRaw: state.headersRaw,
+            headers: state.headers,
+            body: state.body,
+          });
+          state.connector.end();
         },
       });
     }
@@ -355,14 +321,6 @@ export default (
           body: requestOptions.body,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
-            channels.requestSend.publish({
-              ..._id == null ? {} : { _id },
-              data: {
-                path: requestOptions.path,
-                method: requestOptions.method,
-                headers: requestOptions.headers,
-              },
-            });
             outgoing(Buffer.concat([
               chunkRequestHeaders,
               Buffer.from('\r\n'),
@@ -389,10 +347,10 @@ export default (
         state.isActive = false;
         state.connector();
         closeRequestStream();
-        channels.error.publish({
-          ..._id == null ? {} : { _id },
-          message: 'abort',
-        });
+        if (state.tick) {
+          clearTimeout(state.tick);
+          state.tick = null;
+        }
         reject(new Error('abort'));
       }
     }
@@ -403,13 +361,6 @@ export default (
           if (state.isActive) {
             state.isConnect = true;
             const now = getCurrentDateTime();
-            channels.connect.publish({
-              ..._id == null ? {} : { _id },
-              remoteAddress: socket.remoteAddress,
-              remotePort: socket.remotePort,
-              dateTimeCreate: state.dateTimeCreate,
-              dateTimeConnect: now,
-            });
             clearTimeout(state.tick);
             state.tick = null;
             state.dateTimeConnect = now;
@@ -437,9 +388,6 @@ export default (
                   if (onIncoming) {
                     onIncoming(chunk);
                   }
-                  channels.incoming.publish({
-                    ..._id == null ? {} : { _id },
-                  });
                   await state.decode(chunk);
                 } catch (error) {
                   state.connector();
@@ -481,7 +429,7 @@ export default (
         if (state.isActive) {
           state.connector();
           closeRequestStream();
-          emitError('connect timeout');
+          emitError(new SocketConnectTimeoutError());
           state.tick = null;
         }
       }, 1000 * 30);
