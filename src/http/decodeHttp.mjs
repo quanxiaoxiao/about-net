@@ -2,7 +2,7 @@
 import assert from 'node:assert';
 import readHttpLine from './readHttpLine.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
-import { HttpParserError } from './errors.mjs';
+import { HttpParserError } from '../errors.mjs';
 
 const crlf = Buffer.from([0x0d, 0x0a]);
 const MAX_CHUNK_SIZE = 1024 * 1024 * 800;

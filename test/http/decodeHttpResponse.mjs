@@ -1,6 +1,6 @@
 import test from 'ava'; // eslint-disable-line
 import { decodeHttpResponse } from '../../src/http/decodeHttp.mjs';
-import { HttpParserError } from '../../src/http/errors.mjs';
+import { HttpParserError } from '../../src/errors.mjs';
 
 test('parseStartLine fail 1', async (t) => {
   t.plan(1);
