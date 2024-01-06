@@ -125,6 +125,38 @@ test('server response error 1', async (t) => {
   server.close();
 });
 
+test('onConnect trigger error', async (t) => {
+  t.plan(1);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('data', () => {
+      t.fail();
+    });
+  });
+  server.listen(port);
+  try {
+    await request({
+      method: 'GET',
+      path: '/aaa',
+      onRequest: () => {
+        throw new Error('xxx');
+      },
+    }, () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    });
+    t.fail();
+  } catch (error) {
+    t.is(error.message, 'xxx');
+  }
+  await waitFor(500);
+  server.close();
+});
+
 test('trigger onRequest error 1', async (t) => {
   t.plan(2);
   const port = getPort();

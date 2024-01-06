@@ -9,6 +9,7 @@ import {
   SocketConnectError,
   SocketCloseError,
   SocketConnectTimeoutError,
+  ConnectorCreateError,
 } from '../errors.mjs';
 
 /**
@@ -107,28 +108,24 @@ export default (
      */
     function outgoing(chunk) {
       assert(state.isActive);
-      if (!state.connector) {
-        handleError('connector is exist');
-      } else {
-        const size = chunk ? chunk.length : 0;
-        if (size > 0) {
-          try {
-            state.bytesOutgoing += size;
-            if (onOutgoing) {
-              onOutgoing(chunk);
-            }
-            const ret = state.connector.write(chunk);
-            if (!ret
+      const size = chunk ? chunk.length : 0;
+      if (size > 0) {
+        try {
+          state.bytesOutgoing += size;
+          if (onOutgoing) {
+            onOutgoing(chunk);
+          }
+          const ret = state.connector.write(chunk);
+          if (!ret
               && requestOptions.body
               && requestOptions.body.pipe
               && !requestOptions.body.isPaused()
-            ) {
-              requestOptions.body.pause();
-            }
-          } catch (error) {
-            handleError(error);
-            state.connector();
+          ) {
+            requestOptions.body.pause();
           }
+        } catch (error) {
+          handleError(error);
+          state.connector();
         }
       }
     }
@@ -376,7 +373,7 @@ export default (
             }
             if (state.dateTimeRequestSend == null) {
               state.connector();
-              handleError('request is not send');
+              handleError(new Error('request is not send'));
             } else {
               const size = chunk.length;
               state.bytesIncoming += size;
@@ -423,14 +420,14 @@ export default (
     );
 
     if (!state.connector) {
-      handleError('create connector fail');
+      handleError(new ConnectorCreateError());
     } else if (state.isActive) {
       state.tick = setTimeout(() => {
+        state.tick = null;
         if (state.isActive) {
           state.connector();
           closeRequestStream();
           emitError(new SocketConnectTimeoutError());
-          state.tick = null;
         }
       }, 1000 * 30);
       if (signal) {
