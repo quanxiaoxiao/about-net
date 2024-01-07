@@ -8,6 +8,7 @@ import httpRequest from './httpRequest.mjs';
 import httpsRequest from './httpsRequest.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
+import setHeaders from './setHeaders.mjs';
 
 export default {
   encodeHttp,
@@ -20,4 +21,5 @@ export default {
   httpsRequest,
   filterHttpHeaders,
   convertHttpHeaders,
+  setHeaders,
 };

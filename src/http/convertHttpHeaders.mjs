@@ -1,29 +1,7 @@
+import convertObjToArray from './convertObjToArray.mjs';
 /**
  * @typedef {Object<string, string | Array<string>>} KeyValueObj
  */
-
-/**
- * @param {KeyValueObj} obj
- * @returns {Array<string>}
- */
-const convertObjToArray = (obj) => {
-  const result = [];
-  const keys = Object.keys(obj);
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const value = obj[key];
-    if (Array.isArray(value)) {
-      for (let j = 0; j < value.length; j++) {
-        result.push(key);
-        result.push(value[j]);
-      }
-    } else {
-      result.push(key);
-      result.push(value);
-    }
-  }
-  return result;
-};
 
 /**
  * @param {KeyValueObj | Array<string>} [data]
