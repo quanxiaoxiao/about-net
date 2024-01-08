@@ -9,6 +9,7 @@ import httpsRequest from './httpsRequest.mjs';
 import filterHttpHeaders from './filterHttpHeaders.mjs';
 import convertHttpHeaders from './convertHttpHeaders.mjs';
 import setHeaders from './setHeaders.mjs';
+import parseCookie from './parseCookie.mjs';
 
 export default {
   encodeHttp,
@@ -22,4 +23,5 @@ export default {
   filterHttpHeaders,
   convertHttpHeaders,
   setHeaders,
+  parseCookie,
 };
