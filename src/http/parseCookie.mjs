@@ -5,12 +5,17 @@ export default (str) => {
       const [key, value] = s.split('=');
       return {
         key: key.trim(),
-        value: (decodeURIComponent(value) || '').trim(),
+        value: decodeURIComponent(value || '').trim(),
       };
     })
-    .reduce((acc, cur) => ({
-      ...acc,
-      [cur.key]: cur.value,
-    }), {});
+    .reduce((acc, cur) => {
+      if (cur.key === '') {
+        return acc;
+      }
+      return {
+        ...acc,
+        [cur.key]: cur.value,
+      };
+    }, {});
   return data;
 };
