@@ -9,9 +9,11 @@ export default async (
   {
     getConnect,
     sourceBufList = [],
+    onConnect,
+    onIncoming,
+    onOutgoing,
     onClose,
     onError,
-    onConnect,
   },
 ) => {
   const controller = new AbortController();
@@ -36,6 +38,9 @@ export default async (
     {
       onData: (chunk) => {
         if (!controller.signal.aborted) {
+          if (onOutgoing) {
+            onOutgoing(chunk);
+          }
           if (!state.dest) {
             state.source.pause();
             state.sourceBufList.push(chunk);
@@ -102,6 +107,9 @@ export default async (
         onError: emitError,
         onData: (chunk) => {
           if (!controller.signal.aborted) {
+            if (onIncoming) {
+              onIncoming(chunk);
+            }
             try {
               const ret = state.source.write(chunk);
               if (!ret) {
