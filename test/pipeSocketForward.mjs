@@ -39,10 +39,13 @@ test('1', async (t) => {
     onConnect: () => {
       t.fail();
     },
-    getConnect: () => net.connect({
-      host: '127.0.0.1',
-      port,
-    }),
+    getConnect: () => {
+      t.fail();
+      return net.connect({
+        host: '127.0.0.1',
+        port,
+      });
+    },
   });
   await waitFor();
   server.close();
@@ -184,6 +187,55 @@ test('4', async (t) => {
         host: '127.0.0.1',
         port: port2,
       }),
+    },
+  );
+  await waitFor(1000);
+  server1.close();
+  server2.close();
+});
+
+test('5', async (t) => {
+  const port1 = getPort();
+  const port2 = getPort();
+  t.plan(2);
+  const server1 = net.createServer(() => {
+    t.pass();
+  });
+  const server2 = net.createServer(() => {
+    t.fail();
+  });
+
+  server1.listen(port1);
+  server2.listen(port2);
+
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port: port1,
+  });
+
+  await waitFor(50);
+
+  socket.destroy();
+
+  pipeSocketForward(
+    socket,
+    {
+      onError: () => {
+        t.pass();
+      },
+      onClose: () => {
+        t.fail();
+      },
+      onConnect: () => {
+        t.fail();
+      },
+      getConnect: () => {
+        t.fail();
+        return net.connect({
+          host: '127.0.0.1',
+          port: port2,
+        });
+      },
     },
   );
   await waitFor(1000);
