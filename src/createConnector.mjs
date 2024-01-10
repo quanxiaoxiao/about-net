@@ -215,6 +215,10 @@ const createConnector = (
         state.isConnect = false;
         socket.off('data', handleData);
         socket.off('close', handleClose);
+        socket.off('drain', handleDrain);
+        if (timeout != null) {
+          socket.off('timeout', handleTimeout);
+        }
       }
       if (socket.connecting) {
         socket.off('connect', handleConnect);
@@ -253,6 +257,9 @@ const createConnector = (
       socket.off('close', handleClose);
       socket.off('data', handleData);
       socket.off('drain', handleDrain);
+      if (timeout != null) {
+        socket.off('timeout', handleTimeout);
+      }
       if (chunk && chunk.length > 0) {
         socket.end(chunk);
       } else {

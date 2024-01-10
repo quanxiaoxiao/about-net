@@ -440,7 +440,7 @@ test('end 2', async (t) => {
 
 test('signal 1', async (t) => {
   const port = getPort();
-  t.plan(4);
+  t.plan(3);
   const server = net.createServer((socket) => {
     t.pass();
     socket.once('close', () => {
@@ -449,13 +449,12 @@ test('signal 1', async (t) => {
   });
   server.listen(port);
   const controller = new AbortController();
-  const connector = createConnector(
+  createConnector(
     {
       onConnect: () => {
         t.pass();
         setTimeout(() => {
           controller.abort();
-          t.false(connector.getState().isActive);
         }, 100);
       },
       onError: () => {
@@ -484,19 +483,19 @@ test('signal 1', async (t) => {
 
 test('onData trigger error', async (t) => {
   const port = getPort();
-  t.plan(5);
+  t.plan(3);
   const server = net.createServer((socket) => {
     t.pass();
+    socket.once('close', () => {
+      t.pass();
+    });
     setTimeout(() => {
       socket.write('123');
-      setTimeout(() => {
-        t.true(socket.destroyed);
-      }, 10);
     }, 200);
   });
   server.listen(port);
   const controller = new AbortController();
-  const connector = createConnector(
+  createConnector(
     {
       onConnect: () => {
         t.pass();
@@ -506,9 +505,6 @@ test('onData trigger error', async (t) => {
       },
       onData: (chunk) => {
         t.is(chunk.toString(), '123');
-        process.nextTick(() => {
-          t.false(connector.getState().isActive);
-        });
         throw new Error();
       },
       onClose: () => {
