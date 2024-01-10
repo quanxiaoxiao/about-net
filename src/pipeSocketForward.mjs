@@ -11,12 +11,22 @@ export default async (
   },
 ) => {
   const controller = new AbortController();
+
   const state = {
     source: null,
     dest: null,
     sourceBufList,
     tick: null,
   };
+
+  function emitError(error) {
+    if (!controller.signal.aborted) {
+      if (onError) {
+        onError(error);
+      }
+      controller.abort();
+    }
+  }
 
   state.source = createConnector(
     {
@@ -32,12 +42,7 @@ export default async (
                 state.source.pause();
               }
             } catch (error) {
-              if (!controller.signal.aborted) {
-                if (onError) {
-                  onError(error);
-                }
-                controller.abort();
-              }
+              emitError(error);
             }
           }
         } else {
@@ -60,14 +65,7 @@ export default async (
           controller.abort();
         }
       },
-      onError: (error) => {
-        if (!controller.signal.aborted) {
-          if (onError) {
-            onError(error);
-          }
-          controller.abort();
-        }
-      },
+      onError: emitError,
     },
     () => socketSource,
     controller.signal,
@@ -97,14 +95,7 @@ export default async (
             controller.abort();
           }
         },
-        onError: (error) => {
-          if (!controller.signal.aborted) {
-            if (onError) {
-              onError(error);
-            }
-            controller.abort();
-          }
-        },
+        onError: emitError,
         onData: (chunk) => {
           if (!controller.signal.aborted) {
             try {
@@ -113,12 +104,7 @@ export default async (
                 state.dest.pause();
               }
             } catch (error) {
-              if (!controller.signal.aborted) {
-                if (onError) {
-                  onError(error);
-                }
-                controller.abort();
-              }
+              emitError(error);
             }
           } else {
             state.dest();
@@ -135,12 +121,7 @@ export default async (
     );
 
     if (!state.dest) {
-      if (!controller.signal.aborted) {
-        if (onError) {
-          onError(new Error('create remote connector fail'));
-        }
-        controller.abort();
-      }
+      emitError(new Error('create remote connector fail'));
     } else {
       while (!controller.signal.aborted
        && state.sourceBufList.length > 0) {
@@ -150,23 +131,14 @@ export default async (
             state.dest.write(chunk);
           }
         } catch (error) {
-          if (!controller.signal.aborted) {
-            if (onError) {
-              onError(error);
-            }
-            controller.abort();
-          }
+          emitError(error);
         }
       }
       if (!controller.signal.aborted) {
         state.tick = setTimeout(() => {
           if (state.tick) {
             state.tick = null;
-            if (!controller.signal.aborted) {
-              if (onError) {
-                onError(new Error('connect dest timeout'));
-              }
-            }
+            emitError(new Error('connect dest timeout'));
           }
         }, 1000 * 10);
       }

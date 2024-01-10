@@ -87,6 +87,7 @@ const createConnector = (
       emitError(error);
     }
   }
+
   socket.once('error', handleError);
 
   if (!state.isActive) {
