@@ -8,143 +8,165 @@ export default async (
     onClose,
     onError,
     onConnect,
-    onIncoming,
-    onOutgoing,
   },
 ) => {
+  const controller = new AbortController();
   const state = {
     source: null,
     dest: null,
-    isActive: true,
     sourceBufList,
     tick: null,
   };
 
-  if (!socketSource.isPaused()) {
-    socketSource.pause();
-  }
-
-  const handleError = (error) => {
-    state.source();
-    if (state.dest) {
-      state.dest();
-    }
-    if (state.isActive) {
-      state.isActive = false;
-      if (onError) {
-        onError(error);
-      } else {
-        console.error(error);
-      }
-    }
-  };
-
-  state.source = createConnector({
-    onData: (chunk) => {
-      if (state.isActive) {
-        if (onOutgoing) {
-          onOutgoing(chunk);
-        }
-        if (!state.dest) {
-          state.source.pause();
-          state.sourceBufList.push(chunk);
-        } else {
-          try {
-            const ret = state.dest.write(chunk);
-            if (!ret) {
-              state.source.pause();
-            }
-          } catch (error) {
-            handleError(error);
-          }
-        }
-      } else {
-        state.source();
-      }
-    },
-    onDrain: () => {
-      if (state.dest) {
-        state.dest.resume();
-      }
-    },
-    onClose: () => {
-      if (state.isActive) {
-        state.isActive = false;
-        if (state.dest) {
-          state.dest.end();
-          if (onClose) {
-            onClose();
-          }
-        } else if (onError) {
-          onError(new Error('source socket close'));
-        }
-      }
-    },
-    onError: handleError,
-  }, () => socketSource);
-
-  if (state.source && state.isActive) {
-    state.dest = createConnector({
-      onConnect: () => {
-        if (state.isActive) {
-          clearTimeout(state.tick);
-          state.tick = null;
-          state.source.resume();
-          if (onConnect) {
-            onConnect();
-          }
-        } else {
-          state.dest();
-        }
-      },
-      onClose: () => {
-        if (state.isActive) {
-          state.isActive = false;
-          state.source.end();
-          if (onClose) {
-            onClose();
-          }
-        }
-      },
-      onError: handleError,
+  state.source = createConnector(
+    {
       onData: (chunk) => {
-        if (state.isActive) {
-          if (onIncoming) {
-            onIncoming(chunk);
-          }
-          try {
-            const ret = state.source.write(chunk);
-            if (!ret) {
-              state.dest.pause();
+        if (!controller.signal.aborted) {
+          if (!state.dest) {
+            state.source.pause();
+            state.sourceBufList.push(chunk);
+          } else {
+            try {
+              const ret = state.dest.write(chunk);
+              if (!ret) {
+                state.source.pause();
+              }
+            } catch (error) {
+              if (!controller.signal.aborted) {
+                if (onError) {
+                  onError(error);
+                }
+                controller.abort();
+              }
             }
-          } catch (error) {
-            handleError(error);
           }
         } else {
-          state.dest();
+          state.source();
         }
       },
       onDrain: () => {
-        state.source.resume();
+        if (!controller.signal.aborted && state.dest) {
+          state.dest.resume();
+        }
       },
-    }, getConnect);
+      onClose: () => {
+        if (!controller.signal.aborted) {
+          if (onClose) {
+            onClose();
+          }
+          if (state.dest) {
+            state.dest.end();
+          }
+          controller.abort();
+        }
+      },
+      onError: (error) => {
+        if (!controller.signal.aborted) {
+          if (onError) {
+            onError(error);
+          }
+          controller.abort();
+        }
+      },
+    },
+    () => socketSource,
+    controller.signal,
+  );
+
+  if (state.source && !controller.signal.aborted) {
+    state.dest = createConnector(
+      {
+        onConnect: () => {
+          if (!controller.signal.aborted) {
+            clearTimeout(state.tick);
+            state.tick = null;
+            state.source.resume();
+            if (onConnect) {
+              onConnect();
+            }
+          } else {
+            state.dest();
+          }
+        },
+        onClose: () => {
+          if (!controller.signal.aborted) {
+            state.source.end();
+            if (onClose) {
+              onClose();
+            }
+            controller.abort();
+          }
+        },
+        onError: (error) => {
+          if (!controller.signal.aborted) {
+            if (onError) {
+              onError(error);
+            }
+            controller.abort();
+          }
+        },
+        onData: (chunk) => {
+          if (!controller.signal.aborted) {
+            try {
+              const ret = state.source.write(chunk);
+              if (!ret) {
+                state.dest.pause();
+              }
+            } catch (error) {
+              if (!controller.signal.aborted) {
+                if (onError) {
+                  onError(error);
+                }
+                controller.abort();
+              }
+            }
+          } else {
+            state.dest();
+          }
+        },
+        onDrain: () => {
+          if (!controller.signal.aborted) {
+            state.source.resume();
+          }
+        },
+      },
+      getConnect,
+      controller.signal,
+    );
 
     if (!state.dest) {
-      handleError(new Error('create connect fail'));
+      if (!controller.signal.aborted) {
+        if (onError) {
+          onError(new Error('create remote connector fail'));
+        }
+        controller.abort();
+      }
     } else {
-      while (state.isActive
+      while (!controller.signal.aborted
        && state.sourceBufList.length > 0) {
         try {
           const chunk = state.sourceBufList.shift();
-          state.dest.write(chunk);
+          if (chunk && chunk.length > 0) {
+            state.dest.write(chunk);
+          }
         } catch (error) {
-          handleError(error);
+          if (!controller.signal.aborted) {
+            if (onError) {
+              onError(error);
+            }
+            controller.abort();
+          }
         }
       }
-      if (state.isActive) {
+      if (!controller.signal.aborted) {
         state.tick = setTimeout(() => {
-          if (state.isActive && state.tick) {
-            handleError(new Error('connect dest timeout'));
+          if (state.tick) {
+            state.tick = null;
+            if (!controller.signal.aborted) {
+              if (onError) {
+                onError(new Error('connect dest timeout'));
+              }
+            }
           }
         }, 1000 * 10);
       }

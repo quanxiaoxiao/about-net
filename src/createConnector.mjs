@@ -25,8 +25,8 @@ const createConnector = (
   getConnect,
   signal,
 ) => {
-  if (signal) {
-    assert(!signal.aborted);
+  if (signal && signal.aborted) {
+    return null;
   }
 
   const {
@@ -260,12 +260,12 @@ const createConnector = (
       if (timeout != null) {
         socket.off('timeout', handleTimeout);
       }
+      close();
       if (chunk && chunk.length > 0) {
         socket.end(chunk);
       } else {
         socket.end();
       }
-      close();
     }
   };
 

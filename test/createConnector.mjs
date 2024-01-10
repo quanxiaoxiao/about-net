@@ -528,3 +528,129 @@ test('onData trigger error', async (t) => {
   await waitFor(1000);
   server.close();
 });
+
+test('signal abort 1', async (t) => {
+  const port = getPort();
+  const server = net.createServer(() => {
+    t.fail();
+  });
+  server.listen(port);
+  const controller = new AbortController();
+  controller.abort();
+  const connector = createConnector(
+    {
+      onConnect: () => {
+        t.fail();
+      },
+      onError: () => {
+        t.fail();
+      },
+      onData: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.fail();
+      },
+    },
+    () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    },
+    controller.signal,
+  );
+  t.is(connector, null);
+  await waitFor(1000);
+  server.close();
+});
+
+test('signal abort 2', async (t) => {
+  const port = getPort();
+  t.plan(2);
+  const server = net.createServer(() => {
+    t.fail();
+  });
+  server.listen(port);
+  const controller = new AbortController();
+  controller.signal.addEventListener('abort', () => {
+    t.pass();
+  });
+  const connector = createConnector(
+    {
+      onConnect: () => {
+        t.fail();
+      },
+      onError: () => {
+        t.fail();
+      },
+      onData: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.fail();
+      },
+    },
+    () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    },
+    controller.signal,
+  );
+  t.true(!!connector);
+  controller.abort();
+  await waitFor(1000);
+  server.close();
+});
+
+test('end is not trigger abort', async (t) => {
+  const port = getPort();
+  t.plan(3);
+  const server = net.createServer((socket) => {
+    t.pass();
+    socket.on('data', (chunk) => {
+      t.is(chunk.toString(), '123');
+    });
+  });
+  server.listen(port);
+  const controller = new AbortController();
+  controller.signal.addEventListener('abort', () => {
+    t.fail();
+  });
+  const connector = createConnector(
+    {
+      onConnect: () => {
+        t.pass();
+        setTimeout(() => {
+          connector.end(Buffer.from('123'));
+        }, 100);
+      },
+      onError: () => {
+        t.fail();
+      },
+      onData: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.fail();
+      },
+    },
+    () => {
+      const socket = net.Socket();
+      socket.connect({
+        host: '127.0.0.1',
+        port,
+      });
+      return socket;
+    },
+    controller.signal,
+  );
+  await waitFor(1000);
+  server.close();
+});
