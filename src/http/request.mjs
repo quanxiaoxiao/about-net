@@ -52,7 +52,9 @@ export default (
     signal,
   } = options;
 
-  assert(signal ? !signal.aborted : true);
+  if (signal) {
+    assert(!signal.aborted);
+  }
 
   return new Promise((resolve, reject) => {
     const state = {

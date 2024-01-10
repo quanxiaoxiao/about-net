@@ -23,7 +23,12 @@ import {
 const createConnector = (
   options,
   getConnect,
+  signal,
 ) => {
+  if (signal) {
+    assert(!signal.aborted);
+  }
+
   const {
     onConnect,
     onData,
@@ -103,7 +108,7 @@ const createConnector = (
   function handleConnect() {
     if (state.isActive) {
       if (!socket.remoteAddress) {
-        state.isActive = true;
+        state.isActive = false;
         emitError(new SocketConnectError());
         destroy();
       } else {
@@ -169,6 +174,18 @@ const createConnector = (
     }
   }
 
+  function close() {
+    if (state.isActive) {
+      state.isActive = false;
+      if (signal && !signal.aborted) {
+        signal.removeEventListener('abort', handleAbortOnSignal);
+      }
+
+      return true;
+    }
+    return false;
+  }
+
   /**
    * @param {Buffer} chunk
    */
@@ -179,9 +196,9 @@ const createConnector = (
           pause();
         }
       } catch (error) {
-        state.isActive = false;
-        state.isConnect = false;
         socket.off('data', handleData);
+        close();
+        state.isConnect = false;
         destroy();
       }
     } else {
@@ -191,8 +208,7 @@ const createConnector = (
   }
 
   const connector = () => {
-    if (state.isActive) {
-      state.isActive = false;
+    if (close()) {
       if (state.isConnect) {
         state.isConnect = false;
         socket.off('data', handleData);
@@ -235,16 +251,28 @@ const createConnector = (
       socket.off('close', handleClose);
       socket.off('data', handleData);
       socket.off('drain', handleDrain);
-      state.isActive = false;
       if (chunk && chunk.length > 0) {
         socket.end(chunk);
       } else {
         socket.end();
       }
+      close();
     }
   };
 
   connector.getState = () => state;
+
+  function handleAbortOnSignal() {
+    connector();
+  }
+
+  if (signal) {
+    signal.addEventListener(
+      'abort',
+      handleAbortOnSignal,
+      { once: true },
+    );
+  }
 
   return connector;
 };
