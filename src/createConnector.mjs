@@ -32,12 +32,21 @@ const createConnector = (
   const {
     onConnect,
     onData,
+    timeout = 1000 * 60,
     onDrain,
     onClose,
     onError,
   } = options;
 
   const socket = getConnect();
+
+  const state = {
+    isConnect: false,
+    isActive: true,
+    isBindSignal: false,
+    /** @type {Array<Buffer>} */
+    outgoingBufList: [],
+  };
 
   /**
    * @param {Error|string} error
@@ -64,13 +73,6 @@ const createConnector = (
     return null;
   }
 
-  const state = {
-    isConnect: false,
-    isActive: true,
-    /** @type {Array<Buffer>} */
-    outgoingBufList: [],
-  };
-
   function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
@@ -81,8 +83,7 @@ const createConnector = (
    * @param {Error} error
    */
   function handleError(error) {
-    if (state.isActive) {
-      state.isActive = false;
+    if (close()) {
       emitError(error);
     }
   }
@@ -108,14 +109,16 @@ const createConnector = (
   function handleConnect() {
     if (state.isActive) {
       if (!socket.remoteAddress) {
-        state.isActive = false;
+        close();
         emitError(new SocketConnectError());
         destroy();
       } else {
         state.isConnect = true;
-        socket.setTimeout(1000 * 60);
         socket.once('close', handleClose);
-        socket.once('timeout', handleTimeout);
+        if (timeout != null) {
+          socket.setTimeout(timeout);
+          socket.once('timeout', handleTimeout);
+        }
         socket.on('drain', handleDrain);
         while (state.isActive
           && state.outgoingBufList.length > 0
@@ -146,11 +149,8 @@ const createConnector = (
 
   function handleClose() {
     state.isConnect = false;
-    if (state.isActive) {
-      state.isActive = false;
-      if (onClose) {
-        onClose();
-      }
+    if (close() && onClose) {
+      onClose();
     }
   }
 
@@ -177,7 +177,10 @@ const createConnector = (
   function close() {
     if (state.isActive) {
       state.isActive = false;
-      if (signal && !signal.aborted) {
+      if (signal
+        && !signal.aborted
+        && state.isBindSignal
+      ) {
         signal.removeEventListener('abort', handleAbortOnSignal);
       }
 
@@ -198,7 +201,6 @@ const createConnector = (
       } catch (error) {
         socket.off('data', handleData);
         close();
-        state.isConnect = false;
         destroy();
       }
     } else {
@@ -267,6 +269,7 @@ const createConnector = (
   }
 
   if (signal) {
+    state.isBindSignal = true;
     signal.addEventListener(
       'abort',
       handleAbortOnSignal,
