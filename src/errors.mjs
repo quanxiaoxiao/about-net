@@ -91,3 +91,23 @@ export class ConnectorCreateError extends Error {
     this.message = message || 'Create Connector Fail';
   }
 }
+
+export class SocketPipeTimeoutError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Pipe Timeout';
+  }
+}
+
+export class SocketPipeError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Socket Pipe Error';
+  }
+}

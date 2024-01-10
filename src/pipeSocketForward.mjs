@@ -1,4 +1,8 @@
 import createConnector from './createConnector.mjs';
+import {
+  SocketPipeTimeoutError,
+  SocketPipeError,
+} from './errors.mjs';
 
 export default async (
   socketSource,
@@ -121,7 +125,7 @@ export default async (
     );
 
     if (!state.dest) {
-      emitError(new Error('create remote connector fail'));
+      emitError(new SocketPipeError());
     } else {
       while (!controller.signal.aborted
        && state.sourceBufList.length > 0) {
@@ -138,7 +142,7 @@ export default async (
         state.tick = setTimeout(() => {
           if (state.tick) {
             state.tick = null;
-            emitError(new Error('connect dest timeout'));
+            emitError(new SocketPipeTimeoutError());
           }
         }, 1000 * 10);
       }
