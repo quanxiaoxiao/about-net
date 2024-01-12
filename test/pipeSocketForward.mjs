@@ -21,39 +21,9 @@ const waitFor = async (t = 100) => {
   });
 };
 
-test('1', async (t) => {
-  const port = getPort();
-  t.plan(1);
-  const server = net.createServer(() => {
-    t.fail();
-  });
-  server.listen(port);
-  const socket = net.Socket();
-  pipeSocketForward(socket, {
-    onError: () => {
-      t.pass();
-    },
-    onClose: () => {
-      t.fail();
-    },
-    onConnect: () => {
-      t.fail();
-    },
-    getConnect: () => {
-      t.fail();
-      return net.connect({
-        host: '127.0.0.1',
-        port,
-      });
-    },
-  });
-  await waitFor();
-  server.close();
-});
-
-test('2', async (t) => {
-  const port = getPort();
+test('222', async (t) => {
   t.plan(2);
+  const port = getPort();
   const server = net.createServer(() => {
     t.pass();
   });
@@ -81,10 +51,40 @@ test('2', async (t) => {
       },
       getConnect: () => net.connect({
         host: '127.0.0.1',
-        port: 9998,
+        port: 10001,
       }),
     },
   );
+  await waitFor(500);
+  server.close();
+});
+
+test('1', async (t) => {
+  const port = getPort();
+  t.plan(1);
+  const server = net.createServer(() => {
+    t.fail();
+  });
+  server.listen(port);
+  const socket = net.Socket();
+  pipeSocketForward(socket, {
+    onError: () => {
+      t.pass();
+    },
+    onClose: () => {
+      t.fail();
+    },
+    onConnect: () => {
+      t.fail();
+    },
+    getConnect: () => {
+      t.fail();
+      return net.connect({
+        host: '127.0.0.1',
+        port,
+      });
+    },
+  });
   await waitFor();
   server.close();
 });

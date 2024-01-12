@@ -31,6 +31,9 @@ export default async (
         onError(error);
       }
       controller.abort();
+      if (state.tick != null) {
+        clearTimeout(state.tick);
+      }
     }
   }
 

@@ -141,7 +141,7 @@ test('onError at connect 2', async (t) => {
     const socket = net.Socket();
     socket.connect({
       host: '127.0.0.258',
-      port: 9989,
+      port: 10001,
     });
     return socket;
   });
