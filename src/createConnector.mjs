@@ -84,6 +84,10 @@ const createConnector = (
    */
   function handleError(error) {
     if (close()) {
+      if (state.isConnect) {
+        socket.off('data', handleData);
+        socket.off('close', handleClose);
+      }
       emitError(error);
     }
   }
@@ -201,6 +205,7 @@ const createConnector = (
         }
       } catch (error) {
         socket.off('data', handleData);
+        socket.off('close', handleClose);
         close();
         destroy();
       }
@@ -220,8 +225,7 @@ const createConnector = (
         if (timeout != null) {
           socket.off('timeout', handleTimeout);
         }
-      }
-      if (socket.connecting) {
+      } else if (socket.connecting) {
         socket.off('connect', handleConnect);
       }
       destroy();
@@ -262,10 +266,14 @@ const createConnector = (
         socket.off('timeout', handleTimeout);
       }
       close();
-      if (chunk && chunk.length > 0) {
-        socket.end(chunk);
-      } else {
-        socket.end();
+      if (socket.writable) {
+        if (chunk && chunk.length > 0) {
+          socket.end(chunk);
+        } else {
+          socket.end();
+        }
+      } else if (!socket.destroyed) {
+        socket.destroy();
       }
     }
   };
