@@ -155,7 +155,7 @@ export default async (
             state.tick = null;
             emitError(new SocketPipeTimeoutError());
           }
-        }, 1000 * 30);
+        }, 1000 * 55);
       }
     }
   }

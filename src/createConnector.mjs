@@ -182,9 +182,9 @@ const createConnector = (
         && !signal.aborted
         && state.isBindSignal
       ) {
+        state.isBindSignal = false;
         signal.removeEventListener('abort', handleAbortOnSignal);
       }
-
       return true;
     }
     return false;
