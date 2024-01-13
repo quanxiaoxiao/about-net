@@ -160,6 +160,8 @@ const createConnector = (
   }
 
   function handleTimeout() {
+    socket.off('data', handleData);
+    socket.off('drain', handleDrain);
     destroy();
   }
 
@@ -206,6 +208,10 @@ const createConnector = (
       } catch (error) {
         socket.off('data', handleData);
         socket.off('close', handleClose);
+        socket.off('drain', handleDrain);
+        if (timeout != null) {
+          socket.off('timeout', handleTimeout);
+        }
         close();
         destroy();
       }
@@ -281,6 +287,7 @@ const createConnector = (
   connector.getState = () => state;
 
   function handleAbortOnSignal() {
+    state.isBindSignal = false;
     connector();
   }
 
