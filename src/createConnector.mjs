@@ -161,7 +161,6 @@ const createConnector = (
   }
 
   function handleClose() {
-    state.isConnect = false;
     if (close() && onClose) {
       onClose();
     }
@@ -227,7 +226,6 @@ const createConnector = (
   const connector = () => {
     if (close()) {
       if (state.isConnect) {
-        state.isConnect = false;
         clearEventsListener();
       } else if (socket.connecting) {
         socket.off('connect', handleConnect);
