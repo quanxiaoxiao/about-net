@@ -73,6 +73,15 @@ const createConnector = (
     return null;
   }
 
+  function clearEventsListener() {
+    socket.off('data', handleData);
+    socket.off('close', handleClose);
+    socket.off('drain', handleDrain);
+    if (timeout != null) {
+      socket.off('timeout', handleTimeout);
+    }
+  }
+
   function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
@@ -85,8 +94,7 @@ const createConnector = (
   function handleError(error) {
     if (close()) {
       if (state.isConnect) {
-        socket.off('data', handleData);
-        socket.off('close', handleClose);
+        clearEventsListener();
       }
       emitError(error);
     }
@@ -206,12 +214,7 @@ const createConnector = (
           pause();
         }
       } catch (error) {
-        socket.off('data', handleData);
-        socket.off('close', handleClose);
-        socket.off('drain', handleDrain);
-        if (timeout != null) {
-          socket.off('timeout', handleTimeout);
-        }
+        clearEventsListener();
         close();
         destroy();
       }
@@ -225,12 +228,7 @@ const createConnector = (
     if (close()) {
       if (state.isConnect) {
         state.isConnect = false;
-        socket.off('data', handleData);
-        socket.off('close', handleClose);
-        socket.off('drain', handleDrain);
-        if (timeout != null) {
-          socket.off('timeout', handleTimeout);
-        }
+        clearEventsListener();
       } else if (socket.connecting) {
         socket.off('connect', handleConnect);
       }
@@ -265,12 +263,7 @@ const createConnector = (
     if (!state.isConnect) {
       connector();
     } else {
-      socket.off('close', handleClose);
-      socket.off('data', handleData);
-      socket.off('drain', handleDrain);
-      if (timeout != null) {
-        socket.off('timeout', handleTimeout);
-      }
+      clearEventsListener();
       close();
       if (socket.writable) {
         if (chunk && chunk.length > 0) {
