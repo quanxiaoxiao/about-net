@@ -43,6 +43,8 @@ const createConnector = (
   const state = {
     isConnect: false,
     isActive: true,
+    isErrorEmit: false,
+    isEndEventBind: false,
     isBindSignal: false,
     /** @type {Array<Buffer>} */
     outgoingBufList: [],
@@ -78,7 +80,8 @@ const createConnector = (
     if (eventNames.includes('timeout')) {
       socket.off('timeout', handleTimeout);
     }
-    if (eventNames.includes('end')) {
+    if (state.isEndEventBind) {
+      state.isEndEventBind = false;
       socket.off('end', handleSocketEnd);
     }
     socket.off('data', handleData);
@@ -96,6 +99,7 @@ const createConnector = (
    * @param {Error} error
    */
   function handleError(error) {
+    state.isErrorEmit = true;
     if (close()) {
       if (state.isConnect) {
         clearEventsListener();
@@ -228,8 +232,9 @@ const createConnector = (
   }
 
   function handleSocketEnd() {
+    state.isErrorEmit = false;
     setTimeout(() => {
-      if (socket.eventNames().includes('error')) {
+      if (!state.isErrorEmit) {
         socket.off('error', handleError);
       }
     }, 10);
@@ -276,6 +281,7 @@ const createConnector = (
       clearEventsListener();
       close();
       if (socket.writable) {
+        state.isEndEventBind = true;
         socket.once('end', handleSocketEnd);
         if (chunk && chunk.length > 0) {
           socket.end(chunk);
