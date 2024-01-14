@@ -679,7 +679,7 @@ test('signal abort 3', async (t) => {
   controller.abort();
   t.is(connector.getState().socket.destroyed, true);
   await waitFor(1000);
-  t.is(connector.getState().outgoingBufList.length, 1);
+  t.is(connector.getState().outgoingBufList.length, 0);
   server.close();
 });
 
