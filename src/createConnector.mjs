@@ -74,12 +74,16 @@ const createConnector = (
   }
 
   function clearEventsListener() {
+    const eventNames = socket.eventNames();
+    if (eventNames.includes('timeout')) {
+      socket.off('timeout', handleTimeout);
+    }
+    if (eventNames.includes('end')) {
+      socket.off('end', handleSocketEnd);
+    }
     socket.off('data', handleData);
     socket.off('close', handleClose);
     socket.off('drain', handleDrain);
-    if (timeout != null) {
-      socket.off('timeout', handleTimeout);
-    }
   }
 
   function destroy() {
@@ -223,6 +227,14 @@ const createConnector = (
     }
   }
 
+  function handleSocketEnd() {
+    setTimeout(() => {
+      if (socket.eventNames().includes('error')) {
+        socket.off('error', handleError);
+      }
+    }, 10);
+  }
+
   const connector = () => {
     if (close()) {
       if (state.isConnect) {
@@ -264,6 +276,7 @@ const createConnector = (
       clearEventsListener();
       close();
       if (socket.writable) {
+        socket.once('end', handleSocketEnd);
         if (chunk && chunk.length > 0) {
           socket.end(chunk);
         } else {
