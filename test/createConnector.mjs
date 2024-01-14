@@ -57,6 +57,42 @@ test('onError at init 1', async (t) => {
   await waitFor();
 });
 
+test('connect close buffer is not write', async (t) => {
+  t.plan(4);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    t.pass();
+    socket.destroy();
+  });
+  server.listen(port);
+  const connector = createConnector({
+    onConnect: () => {
+      t.pass();
+    },
+    onData: () => {
+      t.fail();
+    },
+    onClose: () => {
+      t.fail();
+    },
+    onError: () => {
+      t.pass();
+    },
+  }, () => net.connect({
+    host: '127.0.0.1',
+    port,
+  }));
+
+  for (let i = 0; i < 999; i++) {
+    connector.write(Buffer.from('1111'));
+  }
+
+  t.is(connector.getState().outgoingBufList.length, 999);
+
+  await waitFor(1000);
+  server.close();
+});
+
 test('onError at init 2', async (t) => {
   t.plan(2);
   const ret = createConnector({
@@ -373,11 +409,6 @@ test('end 1', async (t) => {
     socket.on('data', (chunk) => {
       t.is(chunk.toString(), '11');
     });
-    socket.once('close', () => {
-      setTimeout(() => {
-        server.close();
-      }, 200);
-    });
   });
   server.listen(port);
   const connector = createConnector({
@@ -403,6 +434,7 @@ test('end 1', async (t) => {
     return socket;
   });
   await waitFor(1000);
+  server.close();
 });
 
 test('end 2', async (t) => {
@@ -606,6 +638,48 @@ test('signal abort 2', async (t) => {
   t.true(!!connector);
   controller.abort();
   await waitFor(1000);
+  server.close();
+});
+
+test('signal abort 3', async (t) => {
+  const port = getPort();
+  t.plan(4);
+  const server = net.createServer(() => {
+    t.pass();
+  });
+  server.listen(port);
+  const controller = new AbortController();
+  controller.signal.addEventListener('abort', () => {
+    t.pass();
+  });
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port,
+  });
+  await waitFor(100);
+  const connector = createConnector(
+    {
+      onConnect: () => {
+        t.fail();
+      },
+      onError: () => {
+        t.fail();
+      },
+      onData: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.fail();
+      },
+    },
+    () => socket,
+    controller.signal,
+  );
+  connector.write(Buffer.from('11111'));
+  controller.abort();
+  t.is(connector.getState().socket.destroyed, true);
+  await waitFor(1000);
+  t.is(connector.getState().outgoingBufList.length, 1);
   server.close();
 });
 

@@ -46,6 +46,7 @@ const createConnector = (
     isErrorEmit: false,
     isEndEventBind: false,
     isBindSignal: false,
+    socket,
     /** @type {Array<Buffer>} */
     outgoingBufList: [],
   };
@@ -84,14 +85,17 @@ const createConnector = (
       state.isEndEventBind = false;
       socket.off('end', handleSocketEnd);
     }
-    socket.off('data', handleData);
-    socket.off('close', handleClose);
-    socket.off('drain', handleDrain);
+    if (state.isConnect) {
+      socket.off('data', handleData);
+      socket.off('close', handleClose);
+      socket.off('drain', handleDrain);
+    }
   }
 
   function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
+      socket.off('error', handleError);
     }
   }
 
@@ -101,9 +105,7 @@ const createConnector = (
   function handleError(error) {
     state.isErrorEmit = true;
     if (close()) {
-      if (state.isConnect) {
-        clearEventsListener();
-      }
+      clearEventsListener();
       emitError(error);
     }
   }
@@ -134,13 +136,6 @@ const createConnector = (
         emitError(new SocketConnectError());
         destroy();
       } else {
-        state.isConnect = true;
-        socket.once('close', handleClose);
-        if (timeout != null) {
-          socket.setTimeout(timeout);
-          socket.once('timeout', handleTimeout);
-        }
-        socket.on('drain', handleDrain);
         while (state.isActive
           && state.outgoingBufList.length > 0
           && socket.writable
@@ -152,14 +147,17 @@ const createConnector = (
         }
         process.nextTick(() => {
           if (state.isActive) {
+            state.isConnect = true;
             if (onConnect) {
               onConnect();
             }
-            process.nextTick(() => {
-              if (state.isActive) {
-                socket.on('data', handleData);
-              }
-            });
+            socket.on('data', handleData);
+            socket.once('close', handleClose);
+            if (timeout != null) {
+              socket.setTimeout(timeout);
+              socket.once('timeout', handleTimeout);
+            }
+            socket.on('drain', handleDrain);
           }
         });
       }
@@ -232,7 +230,7 @@ const createConnector = (
   }
 
   function handleSocketEnd() {
-    state.isErrorEmit = false;
+    state.isEndEventBind = false;
     setTimeout(() => {
       if (!state.isErrorEmit) {
         socket.off('error', handleError);
@@ -240,7 +238,7 @@ const createConnector = (
     }, 10);
   }
 
-  const connector = () => {
+  function connector() {
     if (close()) {
       if (state.isConnect) {
         clearEventsListener();
@@ -249,7 +247,7 @@ const createConnector = (
       }
       destroy();
     }
-  };
+  }
 
   connector.pause = pause;
   connector.resume = resume;
