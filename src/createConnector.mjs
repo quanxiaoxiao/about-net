@@ -151,15 +151,23 @@ const createConnector = (
           if (state.isActive) {
             state.isConnectActive = true;
             if (onConnect) {
-              onConnect();
+              try {
+                onConnect();
+              } catch (error) {
+                close();
+                destroy();
+                socket.off('error', handleError);
+              }
             }
-            socket.on('data', handleData);
-            socket.once('close', handleClose);
-            if (timeout != null) {
-              socket.setTimeout(timeout);
-              socket.once('timeout', handleTimeout);
+            if (state.isActive) {
+              socket.on('data', handleData);
+              socket.once('close', handleClose);
+              if (timeout != null) {
+                socket.setTimeout(timeout);
+                socket.once('timeout', handleTimeout);
+              }
+              socket.on('drain', handleDrain);
             }
-            socket.on('drain', handleDrain);
           }
         });
       }

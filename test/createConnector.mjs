@@ -285,6 +285,47 @@ test('onData 2', async (t) => {
   await waitFor(1000);
 });
 
+test('onData trigger error 2', async (t) => {
+  const port = getPort();
+  t.plan(4);
+  const server = net.createServer((socket) => {
+    socket.write('1111');
+    setTimeout(() => {
+      socket.write('2222');
+    }, 300);
+  });
+  server.listen(port);
+  let i = 0;
+  const connector = createConnector({
+    onConnect: () => {
+      t.pass();
+    },
+    onData: (chunk) => {
+      if (i === 0) {
+        t.is(chunk.toString(), '1111');
+      } else if (i === 1) {
+        t.is(chunk.toString(), '2222');
+        throw new Error();
+      } else {
+        t.fail();
+      }
+      i++;
+    },
+    onClose: () => {
+      t.fail();
+    },
+    onError: () => {
+      t.fail();
+    },
+  }, () => net.connect({
+    host: '127.0.0.1',
+    port,
+  }));
+  await waitFor(1000);
+  t.true(connector.getState().socket.destroyed);
+  server.close();
+});
+
 test('write by socket close 1', async (t) => {
   const port = getPort();
   const server = net.createServer((socket) => {
@@ -726,5 +767,41 @@ test('end is not trigger abort', async (t) => {
     controller.signal,
   );
   await waitFor(1000);
+  server.close();
+});
+
+test('onConnect trigger error', async (t) => {
+  const port = getPort();
+  t.plan(3);
+  const server = net.createServer(() => {
+    t.pass();
+  });
+  server.listen(port);
+
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port,
+  });
+
+  const connector = createConnector(
+    {
+      onConnect: () => {
+        t.pass();
+        throw new Error();
+      },
+      onError: () => {
+        t.fail();
+      },
+      onData: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.fail();
+      },
+    },
+    () => socket,
+  );
+  await waitFor(1000);
+  t.is(connector.getState().socket.destroyed, true);
   server.close();
 });

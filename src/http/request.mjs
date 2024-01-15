@@ -133,17 +133,14 @@ export default (
     }
 
     async function handleConnect() {
-      if (!state.isActive) {
-        state.connector();
-      } else if (onRequest) {
+      if (onRequest) {
         try {
           await onRequest(requestOptions);
         } catch (error) {
-          state.connector();
           handleError(error);
+          state.connector();
         }
       }
-
       if (state.isActive) {
         if (requestOptions.body && requestOptions.body.pipe) {
           if (!requestOptions.body.readable) {
@@ -356,46 +353,40 @@ export default (
 
     state.connector = createConnector(
       {
-        onConnect: async () => {
-          if (state.isActive) {
-            state.isConnect = true;
-            const now = getCurrentDateTime();
-            clearTimeout(state.tick);
-            state.tick = null;
-            state.dateTimeConnect = now;
-            await handleConnect();
-          } else {
-            state.connector();
-          }
+        onConnect: () => {
+          assert(state.isActive);
+          state.isConnect = true;
+          const now = getCurrentDateTime();
+          clearTimeout(state.tick);
+          state.tick = null;
+          state.dateTimeConnect = now;
+          handleConnect();
         },
         onData: async (chunk) => {
-          if (state.isActive) {
-            if (state.bodyPending) {
-              state.connector.pause();
-            }
-            if (state.dateTimeRequestSend == null) {
-              state.connector();
-              handleError(new Error('request is not send'));
-            } else {
-              const size = chunk.length;
-              state.bytesIncoming += size;
-              if (!state.decode) {
-                bindResponseDecode();
-              }
-              if (size > 0) {
-                try {
-                  if (onIncoming) {
-                    onIncoming(chunk);
-                  }
-                  await state.decode(chunk);
-                } catch (error) {
-                  state.connector();
-                  handleError(error);
-                }
-              }
-            }
-          } else {
+          assert(state.isActive);
+          if (state.bodyPending) {
+            state.connector.pause();
+          }
+          if (state.dateTimeRequestSend == null) {
             state.connector();
+            handleError(new Error('request is not send'));
+          } else {
+            const size = chunk.length;
+            state.bytesIncoming += size;
+            if (!state.decode) {
+              bindResponseDecode();
+            }
+            if (size > 0) {
+              try {
+                if (onIncoming) {
+                  onIncoming(chunk);
+                }
+                await state.decode(chunk);
+              } catch (error) {
+                state.connector();
+                handleError(error);
+              }
+            }
           }
         },
         onDrain: () => {
