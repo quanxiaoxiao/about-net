@@ -60,6 +60,7 @@ export default (
     const state = {
       isActive: true,
       isConnect: false,
+      isBodyPause: false,
       tick: null,
       connector: null,
       dateTimeCreate: getCurrentDateTime(),
@@ -257,8 +258,12 @@ export default (
             if (onBody) {
               state.bodyPending = true;
               await onBody(bodyChunk);
+              assert(state.isActive);
               state.bodyPending = false;
-              state.connector.resume();
+              if (state.isBodyPause) {
+                state.isBodyPause = false;
+                state.connector.resume();
+              }
             } else {
               state.body = Buffer.concat([
                 state.body,
@@ -365,7 +370,10 @@ export default (
         onData: async (chunk) => {
           assert(state.isActive);
           if (state.bodyPending) {
-            state.connector.pause();
+            if (!state.isBodyPause) {
+              state.isBodyPause = true;
+              state.connector.pause();
+            }
           }
           if (state.dateTimeRequestSend == null) {
             state.connector();
