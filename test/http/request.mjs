@@ -856,10 +856,9 @@ test('read stream abort', async (t) => {
   server.close();
 });
 
-test('onBody', async (t) => {
-  t.plan(3);
+test('onBody is stream', async (t) => {
+  t.plan(4);
   const port = getPort();
-  let i = 0;
   const server = net.createServer((socket) => {
     const encode = encodeHttp({
       statusCode: 200,
@@ -878,41 +877,87 @@ test('onBody', async (t) => {
       setTimeout(() => {
         socket.write(encode('444'));
       }, 200);
+      setTimeout(() => {
+        socket.write(encode());
+      }, 400);
     });
   });
+  let i = 0;
+  const onBody = new PassThrough();
+  onBody.on('data', (chunk) => {
+    if (i === 0) {
+      t.is(chunk.toString(), '1111');
+    } else if (i === 1) {
+      t.is(chunk.toString(), '222');
+    } else if (i === 2) {
+      t.is(chunk.toString(), '333');
+    } else if (i === 3) {
+      t.is(chunk.toString(), '444');
+    } else {
+      t.fail();
+    }
+    i++;
+  });
   server.listen(port);
-  const controller = new AbortController();
-  setTimeout(() => {
-    controller.abort();
-  }, 1500);
+  await request({
+    path: '/',
+    onBody,
+    body: null,
+  }, () => net.connect({
+    host: '127.0.0.1',
+    port,
+  }));
+  await waitFor(3000);
+  server.close();
+});
+
+test('onBody stream close', async (t) => {
+  t.plan(3);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    const encode = encodeHttp({
+      statusCode: 200,
+      headers: {},
+    });
+    socket.on('data', () => {
+      setTimeout(() => {
+        socket.write(encode('1111'));
+      }, 50);
+      setTimeout(() => {
+        socket.write(encode('222'));
+      }, 100);
+      setTimeout(() => {
+        socket.write(encode('333'));
+      }, 200);
+    });
+  });
+  let i = 0;
+  const onBody = new PassThrough();
+  onBody.on('data', (chunk) => {
+    if (i === 0) {
+      t.is(chunk.toString(), '1111');
+    } else if (i === 1) {
+      t.is(chunk.toString(), '222');
+      onBody.destroy();
+    } else {
+      t.fail();
+    }
+    i++;
+  });
+  server.listen(port);
   try {
     await request({
       path: '/',
+      onBody,
       body: null,
-      signal: controller.signal,
-      onBody: async (chunk) => {
-        if (i === 0) {
-          t.is(chunk.toString(), '1111');
-        } else if (i === 1) {
-          t.is(chunk.toString(), '222');
-        } else {
-          t.fail();
-        }
-        i++;
-        await waitFor(2000);
-      },
-    }, () => {
-      const socket = net.Socket();
-      socket.connect({
-        host: '127.0.0.1',
-        port,
-      });
-      return socket;
-    });
+    }, () => net.connect({
+      host: '127.0.0.1',
+      port,
+    }));
     t.fail();
   } catch (error) {
     t.pass();
   }
-  await waitFor(4000);
+  await waitFor(3000);
   server.close();
 });

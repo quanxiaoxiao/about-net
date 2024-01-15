@@ -311,11 +311,7 @@ const createConnector = (
 
   if (signal) {
     state.isBindSignal = true;
-    signal.addEventListener(
-      'abort',
-      handleAbortOnSignal,
-      { once: true },
-    );
+    signal.addEventListener('abort', handleAbortOnSignal, { once: true });
   }
 
   return connector;

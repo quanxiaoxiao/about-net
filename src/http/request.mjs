@@ -60,11 +60,10 @@ export default (
     const state = {
       isActive: true,
       isConnect: false,
-      isBodyPause: false,
+      isBindDrainOnBody: false,
       tick: null,
       connector: null,
       dateTimeCreate: getCurrentDateTime(),
-      bodyPending: false,
       dateTimeConnect: null,
       dateTimeRequestSend: null,
       bytesIncoming: 0,
@@ -103,6 +102,11 @@ export default (
         }
         const errObj = typeof error === 'string' ? new Error(error) : error;
         reject(errObj);
+      }
+      if (state.isBindDrainOnBody) {
+        state.isBindDrainOnBody = false;
+        onBody.off('drain', handleDrainOnBody);
+        onBody.off('close', handleCloseOnBody);
       }
     }
 
@@ -249,27 +253,24 @@ export default (
             });
           }
         },
-        onBody: async (bodyChunk) => {
+        onBody: (bodyChunk) => {
           assert(state.isActive);
           if (state.dateTimeBody == null) {
             state.dateTimeBody = getCurrentDateTime();
           }
-          if (bodyChunk && bodyChunk.length > 0) {
-            if (onBody) {
-              state.bodyPending = true;
-              await onBody(bodyChunk);
-              assert(state.isActive);
-              state.bodyPending = false;
-              if (state.isBodyPause) {
-                state.isBodyPause = false;
-                state.connector.resume();
+          if (onBody) {
+            if (onBody.write) {
+              if (onBody.write(bodyChunk) === false) {
+                state.connector.pause();
               }
             } else {
-              state.body = Buffer.concat([
-                state.body,
-                bodyChunk,
-              ]);
+              onBody(bodyChunk);
             }
+          } else {
+            state.body = Buffer.concat([
+              state.body,
+              bodyChunk,
+            ]);
           }
         },
         onEnd: () => {
@@ -281,6 +282,11 @@ export default (
           }
           if (signal) {
             signal.removeEventListener('abort', handleAbortOnSignal);
+          }
+          if (state.isBindDrainOnBody) {
+            state.isBindDrainOnBody = false;
+            onBody.off('drain', handleDrainOnBody);
+            onBody.off('close', handleCloseOnBody);
           }
           resolve({
             dateTimeCreate: state.dateTimeCreate,
@@ -356,6 +362,17 @@ export default (
       }
     }
 
+    function handleDrainOnBody() {
+      state.connector.resume();
+    }
+
+    function handleCloseOnBody() {
+      state.isBindDrainOnBody = false;
+      onBody.off('drain', handleDrainOnBody);
+      handleError(new Error('body stream close error'));
+      state.connector();
+    }
+
     state.connector = createConnector(
       {
         onConnect: () => {
@@ -369,12 +386,6 @@ export default (
         },
         onData: async (chunk) => {
           assert(state.isActive);
-          if (state.bodyPending) {
-            if (!state.isBodyPause) {
-              state.isBodyPause = true;
-              state.connector.pause();
-            }
-          }
           if (state.dateTimeRequestSend == null) {
             state.connector();
             handleError(new Error('request is not send'));
@@ -431,12 +442,14 @@ export default (
           emitError(new SocketConnectTimeoutError());
         }
       }, 1000 * 30);
+
       if (signal) {
-        signal.addEventListener(
-          'abort',
-          handleAbortOnSignal,
-          { once: true },
-        );
+        signal.addEventListener('abort', handleAbortOnSignal, { once: true });
+      }
+      if (onBody && onBody.writable) {
+        state.isBindDrainOnBody = true;
+        onBody.on('drain', handleDrainOnBody);
+        onBody.once('close', handleCloseOnBody);
       }
     }
   });
