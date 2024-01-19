@@ -111,3 +111,13 @@ export class SocketPipeError extends Error {
     this.message = message || 'Socket Pipe Error';
   }
 }
+
+export class UrlParseError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.message = message || 'Url Parse Error';
+  }
+}

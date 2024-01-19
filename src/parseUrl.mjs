@@ -1,4 +1,5 @@
 import { parse } from 'node:url';
+import { UrlParseError } from './errors.mjs';
 
 /**
  *  @typedef {Object} Obj
@@ -14,7 +15,7 @@ import { parse } from 'node:url';
  */
 export default (href) => {
   if (!/^https?:\/\/\w+/.test(href)) {
-    throw new Error(`href \`${href}\` invalid`);
+    throw new UrlParseError(`href \`${href}\` invalid`);
   }
   const {
     protocol,
@@ -26,7 +27,7 @@ export default (href) => {
     throw new Error(`href \`${href}\` invalid`);
   }
   if (protocol !== 'https:' && protocol !== 'http:') {
-    throw new Error(`protocol \`${protocol}\` unspport`);
+    throw new UrlParseError(`protocol \`${protocol}\` unspport`);
   }
 
   let p = port ? Number(port) : null;
@@ -34,7 +35,7 @@ export default (href) => {
     p = protocol === 'https:' ? 443 : 80;
   }
   if (p <= 0 || p > 65535 || Number.isNaN(p)) {
-    throw new Error(`port \`${p}\` invalid`);
+    throw new UrlParseError(`port \`${p}\` invalid`);
   }
   return {
     protocol,

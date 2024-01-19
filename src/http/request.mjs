@@ -68,6 +68,7 @@ export default (
       dateTimeRequestSend: null,
       bytesIncoming: 0,
       bytesOutgoing: 0,
+      bytesBody: 0,
       dateTimeResponse: null,
       dateTimeHeader: null,
       dateTimeBody: null,
@@ -258,6 +259,7 @@ export default (
           if (state.dateTimeBody == null) {
             state.dateTimeBody = getCurrentDateTime();
           }
+          state.bytesBody += bodyChunk.length;
           if (onBody) {
             if (onBody.write) {
               if (onBody.write(bodyChunk) === false) {
@@ -298,6 +300,7 @@ export default (
             dateTimeRequestSend: state.dateTimeRequestSend,
             bytesIncoming: state.bytesIncoming,
             bytesOutgoing: state.bytesOutgoing,
+            bytesBody: state.bytesBody,
             httpVersion: state.httpVersion,
             statusCode: state.statusCode,
             statusText: state.statusText,
