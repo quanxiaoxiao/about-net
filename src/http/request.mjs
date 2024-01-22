@@ -275,20 +275,28 @@ export default (
             ]);
           }
         },
-        onEnd: () => {
+        onEnd: async () => {
           assert(state.isActive);
           state.isActive = false;
           state.dateTimeEnd = getCurrentDateTime();
           if (state.dateTimeBody == null) {
             state.dateTimeBody = state.dateTimeEnd;
           }
-          if (signal) {
-            signal.removeEventListener('abort', handleAbortOnSignal);
-          }
           if (state.isBindDrainOnBody) {
             state.isBindDrainOnBody = false;
             onBody.off('drain', handleDrainOnBody);
             onBody.off('close', handleCloseOnBody);
+            if (state.isBindDrainOnBody.writableNeedDrain) {
+              await new Promise((_resolve) => {
+                onBody.once('drain', () => {
+                  _resolve();
+                });
+              });
+              assert(state.isActive);
+            }
+          }
+          if (signal) {
+            signal.removeEventListener('abort', handleAbortOnSignal);
           }
           resolve({
             dateTimeCreate: state.dateTimeCreate,
