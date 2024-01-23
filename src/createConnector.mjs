@@ -44,9 +44,9 @@ const createConnector = (
     isConnect: false,
     isConnectActive: false,
     isActive: true,
-    isErrorEmit: false,
+    isErrorEventBind: false,
     isEndEventBind: false,
-    isBindSignal: false,
+    isSignalEventBind: false,
     socket,
     /** @type {Array<Buffer>} */
     outgoingBufList: [],
@@ -96,21 +96,22 @@ const createConnector = (
   function destroy() {
     if (!socket.destroyed) {
       socket.destroy();
-      socket.off('error', handleError);
     }
+    unbindSocketError();
   }
 
   /**
    * @param {Error} error
    */
   function handleError(error) {
-    state.isErrorEmit = true;
+    state.isErrorEventBind = false;
     if (close()) {
       clearEventsListener();
       emitError(error);
     }
   }
 
+  state.isErrorEventBind = true;
   socket.once('error', handleError);
 
   if (!state.isActive) {
@@ -156,7 +157,6 @@ const createConnector = (
               } catch (error) {
                 close();
                 destroy();
-                socket.off('error', handleError);
               }
             }
             if (state.isActive) {
@@ -180,6 +180,7 @@ const createConnector = (
     if (close() && onClose) {
       onClose();
     }
+    unbindSocketError();
   }
 
   function handleTimeout() {
@@ -207,11 +208,8 @@ const createConnector = (
   function close() {
     if (state.isActive) {
       state.isActive = false;
-      if (signal
-        && !signal.aborted
-        && state.isBindSignal
-      ) {
-        state.isBindSignal = false;
+      if (state.isSignalEventBind) {
+        state.isSignalEventBind = false;
         signal.removeEventListener('abort', handleAbortOnSignal);
       }
       return true;
@@ -239,13 +237,20 @@ const createConnector = (
     }
   }
 
+  function unbindSocketError() {
+    if (state.isErrorEventBind) {
+      setTimeout(() => {
+        if (state.isErrorEventBind) {
+          state.isErrorEventBind = false;
+          socket.off('error', handleError);
+        }
+      }, 10);
+    }
+  }
+
   function handleSocketEnd() {
     state.isEndEventBind = false;
-    setTimeout(() => {
-      if (!state.isErrorEmit) {
-        socket.off('error', handleError);
-      }
-    }, 10);
+    unbindSocketError();
   }
 
   function connector() {
@@ -255,8 +260,8 @@ const createConnector = (
       } else if (socket.connecting) {
         socket.off('connect', handleConnect);
       }
-      destroy();
     }
+    destroy();
   }
 
   connector.pause = pause;
@@ -296,8 +301,8 @@ const createConnector = (
         } else {
           socket.end();
         }
-      } else if (!socket.destroyed) {
-        socket.destroy();
+      } else {
+        destroy();
       }
     }
   };
@@ -305,12 +310,12 @@ const createConnector = (
   connector.getState = () => state;
 
   function handleAbortOnSignal() {
-    state.isBindSignal = false;
+    state.isSignalEventBind = false;
     connector();
   }
 
   if (signal) {
-    state.isBindSignal = true;
+    state.isSignalEventBind = true;
     signal.addEventListener('abort', handleAbortOnSignal, { once: true });
   }
 

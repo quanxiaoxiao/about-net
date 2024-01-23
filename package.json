@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/about-net",
-  "version": "0.7.25",
+  "version": "0.7.26",
   "type": "module",
   "scripts": {
     "lint": "tsc",
