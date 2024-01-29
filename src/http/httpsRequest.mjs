@@ -28,6 +28,8 @@ export default async ({
       headers: convertHttpHeaders(headers, hostname),
       body,
       signal,
+      onStartLine,
+      onHeader,
       onIncoming,
       onOutgoing,
       onBody,

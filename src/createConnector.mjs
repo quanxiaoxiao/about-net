@@ -86,7 +86,7 @@ const createConnector = (
       state.isEndEventBind = false;
       socket.off('end', handleSocketEnd);
     }
-    if (state.isConnectActive) {
+    if (state.isConnectActive && eventNames.includes('data')) {
       socket.off('data', handleData);
       socket.off('close', handleClose);
       socket.off('drain', handleDrain);
@@ -135,7 +135,7 @@ const createConnector = (
     if (state.isActive) {
       if (!socket.remoteAddress) {
         close();
-        emitError(new SocketConnectError());
+        emitError(new SocketConnectError('socket get remote address fail'));
         destroy();
       } else {
         state.isConnect = true;
