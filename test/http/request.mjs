@@ -961,3 +961,51 @@ test('onBody stream close', async (t) => {
   await waitFor(3000);
   server.close();
 });
+
+test('onBody stream backpress', async (t) => {
+  const port = getPort();
+  const onBody = new PassThrough();
+  const server = net.createServer((socket) => {
+    socket.on('data', () => {
+      socket.write('HTTP/1.1 200\r\nContent-Length: 15\r\n\r\naa');
+      setTimeout(() => {
+        socket.write('1111');
+      }, 50);
+      setTimeout(() => {
+        socket.write('222');
+      }, 100);
+      setTimeout(() => {
+        socket.write('333');
+      }, 200);
+      setTimeout(() => {
+        socket.write('444');
+      }, 250);
+    });
+  });
+  const _write = onBody.write;
+  let i = 0;
+  onBody.write = (chunk) => {
+    _write.call(onBody, chunk);
+    if (i === 2) {
+      i++;
+      setTimeout(() => {
+        onBody.emit('drain');
+      }, 50);
+      return false;
+    }
+    i++;
+    return true;
+  };
+  server.listen(port);
+  const ret = await request({
+    path: '/',
+    onBody,
+    body: null,
+  }, () => net.connect({
+    host: '127.0.0.1',
+    port,
+  }));
+  t.is(ret.bytesBody, 15);
+  await waitFor(3000);
+  server.close();
+});

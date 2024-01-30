@@ -339,10 +339,7 @@ export default (
           body: requestOptions.body,
           onHeader: (chunkRequestHeaders) => {
             state.dateTimeRequestSend = getCurrentDateTime();
-            outgoing(Buffer.concat([
-              chunkRequestHeaders,
-              Buffer.from('\r\n'),
-            ]));
+            outgoing(Buffer.concat([chunkRequestHeaders, Buffer.from('\r\n')]));
             if (state.isActive) {
               requestOptions.body.once('error', handleErrorOnRequestBody);
               requestOptions.body.once('close', handleCloseOnRequestBody);
