@@ -60,7 +60,7 @@ test('parseStartLine 2', async (t) => {
 });
 
 test('onHeader delay 1', async (t) => {
-  t.plan(4);
+  t.plan(3);
   const execute = decodeHttpRequest({
     onStartLine: (ret) => {
       t.is(ret.httpVersion, '1.1');
@@ -79,17 +79,12 @@ test('onHeader delay 1', async (t) => {
     },
   });
 
-  try {
-    execute(Buffer.from('GET /test HTTP/1.1\r\n'));
-    await execute(Buffer.from('Content-Length: 10\r\n\r\naa'));
-    t.fail();
-  } catch (error) {
-    t.pass();
-  }
+  execute(Buffer.from('GET /test HTTP/1.1\r\n'));
+  await execute(Buffer.from('Content-Length: 10\r\n\r\naa'));
 });
 
 test('onHeader delay 2', async (t) => {
-  t.plan(4);
+  t.plan(3);
   const execute = decodeHttpRequest({
     onStartLine: (ret) => {
       t.is(ret.httpVersion, '1.1');
@@ -107,15 +102,35 @@ test('onHeader delay 2', async (t) => {
       t.fail();
     },
   });
+  execute(Buffer.from('GET /test HTTP/1.1\r\n'));
+  setTimeout(async () => {
+    await execute(Buffer.from('bbbb'));
+  }, 200);
+  await execute(Buffer.from('Content-Length: 10\r\n\r\naa'));
+});
 
-  try {
-    execute(Buffer.from('GET /test HTTP/1.1\r\n'));
-    setTimeout(async () => {
-      await execute(Buffer.from('bbbb'));
-    }, 200);
-    await execute(Buffer.from('Content-Length: 10\r\n\r\naa'));
-    t.fail();
-  } catch (error) {
-    t.pass();
-  }
+test('onHeader delay 3', async (t) => {
+  t.plan(6);
+  const execute = decodeHttpRequest({
+    onStartLine: (ret) => {
+      t.is(ret.httpVersion, '1.1');
+      t.is(ret.method, 'GET');
+      t.is(ret.href, '/test');
+    },
+    onHeader: async () => {
+      await waitFor(1000);
+    },
+    onBody: () => {
+      t.pass();
+    },
+    onEnd: () => {
+      t.pass();
+    },
+  });
+
+  setTimeout(async () => {
+    await execute(Buffer.from('11bbbb'));
+  }, 200);
+  await execute(Buffer.from('GET /test HTTP/1.1\r\nContent-Length: 6\r\n\r\n'));
+  t.pass();
 });

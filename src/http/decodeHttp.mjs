@@ -23,6 +23,7 @@ const decodeHttp = (
 ) => {
   const state = {
     step: 0,
+    pending: false,
     httpVersion: null,
     statusText: null,
     statusCode: null,
@@ -293,10 +294,16 @@ const decodeHttp = (
       ], state.size);
     }
 
+    if (state.pending) {
+      return getState();
+    }
+
     while (state.step < processes.length) {
       const fn = processes[state.step];
       const current = state.step;
+      state.pending = true;
       await fn(); // eslint-disable-line
+      state.pending = false;
       if (current === state.step) {
         return getState();
       }
