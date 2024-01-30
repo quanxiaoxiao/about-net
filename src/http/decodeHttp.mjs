@@ -76,7 +76,6 @@ const decodeHttp = (
     }
     state.dataBuf = state.dataBuf.slice(len + 2);
     state.size -= (len + 2);
-    state.step += 1;
     if (onStartLine) {
       if (isRequest) {
         await onStartLine({
@@ -92,10 +91,12 @@ const decodeHttp = (
         });
       }
     }
+    state.step += 1;
   };
 
   const parseHeaders = async () => {
-    while (!isHeaderPraseComplete()
+    let isHeaderComplete = isHeaderPraseComplete();
+    while (!isHeaderComplete
       && state.size >= 2) {
       const chunk = readHttpLine(
         state.dataBuf,
@@ -109,7 +110,7 @@ const decodeHttp = (
       state.dataBuf = state.dataBuf.slice(len + 2);
       state.size -= (len + 2);
       if (len === 0) {
-        state.step += 1;
+        isHeaderComplete = true;
       } else {
         const indexSplit = chunk.findIndex((b) => b === COLON_CHAR_CODE);
         if (indexSplit === -1) {
@@ -140,7 +141,7 @@ const decodeHttp = (
         }
       }
     }
-    if (isHeaderPraseComplete()) {
+    if (isHeaderComplete) {
       if (!Object.hasOwnProperty.call(state.headers, 'content-length')
         && (state.headers['transfer-encoding'] || '').toLowerCase() !== 'chunked') {
         state.headers['content-length'] = 0;
@@ -158,6 +159,7 @@ const decodeHttp = (
           headersRaw: state.headersRaw,
         });
       }
+      state.step += 1;
     }
   };
 
@@ -189,8 +191,8 @@ const decodeHttp = (
         state.dataBuf = state.dataBuf.slice(contentLength - state.chunkSize);
         state.size = state.dataBuf.length;
         state.chunkSize = contentLength;
-        state.step += 1;
         await emitBody();
+        state.step += 1;
       }
     } else {
       state.step += 1;
