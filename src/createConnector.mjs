@@ -244,7 +244,7 @@ const createConnector = (
           state.isErrorEventBind = false;
           socket.off('error', handleError);
         }
-      }, 10);
+      }, 100);
     }
   }
 

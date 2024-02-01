@@ -33,6 +33,7 @@ export default async (
       controller.abort();
       if (state.tick != null) {
         clearTimeout(state.tick);
+        state.tick = null;
       }
     }
   }
