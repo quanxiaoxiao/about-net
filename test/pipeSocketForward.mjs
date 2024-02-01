@@ -242,3 +242,144 @@ test('5', async (t) => {
   server1.close();
   server2.close();
 });
+
+test('6', async (t) => {
+  const port1 = getPort();
+  const port2 = getPort();
+  t.plan(4);
+  const server1 = net.createServer(() => {
+    t.pass();
+  });
+  const server2 = net.createServer(() => {
+    t.pass();
+  });
+
+  server1.listen(port1);
+  server2.listen(port2);
+
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port: port1,
+  });
+
+  pipeSocketForward(
+    socket,
+    {
+      onError: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.pass();
+      },
+      onConnect: () => {
+        t.pass();
+        setTimeout(() => {
+          socket.end();
+        }, 500);
+      },
+      getConnect: () => net.connect({
+        host: '127.0.0.1',
+        port: port2,
+      }),
+    },
+  );
+
+  await waitFor(2000);
+
+  server1.close();
+  server2.close();
+});
+
+test('7', async (t) => {
+  const port1 = getPort();
+  const port2 = getPort();
+  t.plan(4);
+  const server1 = net.createServer(() => {
+    t.pass();
+  });
+  const server2 = net.createServer((socket) => {
+    t.pass();
+    setTimeout(() => {
+      socket.end();
+    }, 500);
+  });
+
+  server1.listen(port1);
+  server2.listen(port2);
+
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port: port1,
+  });
+
+  pipeSocketForward(
+    socket,
+    {
+      onError: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.pass();
+      },
+      onConnect: () => {
+        t.pass();
+      },
+      getConnect: () => net.connect({
+        host: '127.0.0.1',
+        port: port2,
+      }),
+    },
+  );
+
+  await waitFor(2000);
+
+  server1.close();
+  server2.close();
+});
+
+test('8', async (t) => {
+  const port1 = getPort();
+  const port2 = getPort();
+  t.plan(4);
+  const server1 = net.createServer((socket) => {
+    t.pass();
+    setTimeout(() => {
+      socket.end();
+    }, 500);
+  });
+  const server2 = net.createServer(() => {
+    t.pass();
+  });
+
+  server1.listen(port1);
+  server2.listen(port2);
+
+  const socket = net.connect({
+    host: '127.0.0.1',
+    port: port1,
+  });
+
+  pipeSocketForward(
+    socket,
+    {
+      onError: () => {
+        t.fail();
+      },
+      onClose: () => {
+        t.pass();
+      },
+      onConnect: () => {
+        t.pass();
+      },
+      getConnect: () => net.connect({
+        host: '127.0.0.1',
+        port: port2,
+      }),
+    },
+  );
+
+  await waitFor(2000);
+
+  server1.close();
+  server2.close();
+});
