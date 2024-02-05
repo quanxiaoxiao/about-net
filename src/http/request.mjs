@@ -286,10 +286,12 @@ export default (
             state.isBindDrainOnBody = false;
             onBody.off('drain', handleDrainOnBody);
             onBody.off('close', handleCloseOnBody);
-            if (state.isBindDrainOnBody.writableNeedDrain) {
+            if (onBody.writableNeedDrain) {
               await new Promise((_resolve) => {
                 onBody.once('drain', () => {
-                  _resolve();
+                  setTimeout(() => {
+                    _resolve();
+                  });
                 });
               });
               assert(state.isActive);
