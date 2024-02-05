@@ -42,11 +42,15 @@ const decodeHttp = (
 
   const parseStartLine = async () => {
     assert(state.step === 0);
-    const chunk = readHttpLine(
-      state.dataBuf,
-      0,
-      'start line',
-    );
+    let chunk;
+    try {
+      chunk = readHttpLine(
+        state.dataBuf,
+        0,
+      );
+    } catch (error) {
+      throw new HttpParserError('parse start line fail', isRequest ? 400 : null);
+    }
     if (!chunk) {
       return;
     }
@@ -99,11 +103,15 @@ const decodeHttp = (
     let isHeaderComplete = isHeaderPraseComplete();
     while (!isHeaderComplete
       && state.size >= 2) {
-      const chunk = readHttpLine(
-        state.dataBuf,
-        0,
-        'header',
-      );
+      let chunk;
+      try {
+        chunk = readHttpLine(
+          state.dataBuf,
+          0,
+        );
+      } catch (error) {
+        throw new HttpParserError('parse headers fail', isRequest ? 400 : null);
+      }
       if (!chunk) {
         return;
       }
