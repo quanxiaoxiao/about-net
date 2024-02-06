@@ -2,6 +2,15 @@ import test from 'ava'; // eslint-disable-line
 import { decodeHttpResponse } from '../../src/http/decodeHttp.mjs';
 import { HttpParserError } from '../../src/errors.mjs';
 
+test('parseStartLine fail 11', async (t) => {
+  try {
+    await decodeHttpResponse()(Buffer.from('HTTP/1.1 200\n\n'));
+    t.fail();
+  } catch (error) {
+    t.true(error.statusCode == null);
+  }
+});
+
 test('parseStartLine fail 1', async (t) => {
   t.plan(1);
   const execute = decodeHttpResponse({

@@ -9,6 +9,15 @@ const waitFor = async (t = 100) => {
   });
 };
 
+test('parseStartLine fail', async (t) => {
+  try {
+    await decodeHttpRequest()(Buffer.from('GET /test HTTP/1.1\n\n'));
+    t.fail();
+  } catch (error) {
+    t.is(error.statusCode, 400);
+  }
+});
+
 test('parseStartLine 1', async (t) => {
   t.plan(3);
   const execute = decodeHttpRequest({

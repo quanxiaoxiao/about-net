@@ -13,14 +13,16 @@ test('fail', (t) => {
       999,
     );
   });
-  t.throws(() => {
+  try {
     readHttpLine(
       Buffer.from('GET /1234567890 HTTP/1.1\r\n'),
       0,
-      'start line',
+      408,
       12,
     );
-  });
+  } catch (error) {
+    t.is(error.statusCode, 408);
+  }
   t.throws(() => {
     readHttpLine(
       Buffer.from('GET / HTTP/1.1\r\n'),
@@ -32,6 +34,29 @@ test('fail', (t) => {
       Buffer.from('\n'),
     );
   });
+  t.throws(() => {
+    readHttpLine(
+      Buffer.from('GET / HTTP/1.1\r\n'),
+      0,
+      '200',
+    );
+  });
+  t.throws(() => {
+    readHttpLine(
+      Buffer.from('GET / HTTP/1.1\r\n'),
+      0,
+      -1,
+    );
+  });
+  try {
+    readHttpLine(
+      Buffer.from('GET / HTTP/1.1\n'),
+      0,
+      400,
+    );
+  } catch (error) {
+    t.is(error.statusCode, 400);
+  }
 });
 
 test('1', (t) => {
