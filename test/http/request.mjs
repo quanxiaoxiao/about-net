@@ -701,6 +701,35 @@ test('onBody 1', async (t) => {
   server.close();
 });
 
+test('onBody with steram', async (t) => {
+  t.plan(3);
+  const port = getPort();
+  const server = net.createServer((socket) => {
+    socket.on('data', () => {
+      socket.write('HTTP/1.1 200\r\nContent-Length: 3\r\n\r\nabc');
+    });
+  });
+  server.listen(port);
+  const pass = new PassThrough();
+  const ret = await request({
+    onBody: pass,
+  }, () => {
+    const socket = net.Socket();
+    socket.connect({
+      host: '127.0.0.1',
+      port,
+    });
+    return socket;
+  });
+  t.is(ret.bytesBody, 3);
+  t.false(pass.destroyed);
+  pass.on('data', (chunk) => {
+    t.is(chunk.toString(), 'abc');
+  });
+  await waitFor(500);
+  server.close();
+});
+
 test('read stream 1', async (t) => {
   t.plan(6);
   const port = getPort();
