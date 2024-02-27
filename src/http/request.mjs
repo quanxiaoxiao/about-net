@@ -2,7 +2,6 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import createConnector from '../createConnector.mjs';
-import getCurrentDateTime from '../getCurrentDateTime.mjs';
 import encodeHttp from './encodeHttp.mjs';
 import { decodeHttpResponse } from './decodeHttp.mjs';
 import {
@@ -63,7 +62,7 @@ export default (
       isBindDrainOnBody: false,
       tick: null,
       connector: null,
-      dateTimeCreate: getCurrentDateTime(),
+      dateTimeCreate: Date.now(),
       dateTimeConnect: null,
       dateTimeRequestSend: null,
       dateTimeResponse: null,
@@ -157,7 +156,7 @@ export default (
           }
         } else {
           try {
-            state.dateTimeRequestSend = getCurrentDateTime();
+            state.dateTimeRequestSend = Date.now();
             outgoing(encodeHttp(requestOptions));
           } catch (error) {
             state.connector();
@@ -218,7 +217,7 @@ export default (
     }
 
     function bindResponseDecode() {
-      state.dateTimeResponse = getCurrentDateTime();
+      state.dateTimeResponse = Date.now();
       state.decode = decodeHttpResponse({
         onStartLine: async (ret) => {
           state.statusCode = ret.statusCode;
@@ -234,7 +233,7 @@ export default (
         },
         onHeader: async (ret) => {
           assert(state.isActive);
-          state.dateTimeHeader = getCurrentDateTime();
+          state.dateTimeHeader = Date.now();
           state.headers = ret.headers;
           state.headersRaw = ret.headersRaw;
           if (onHeader) {
@@ -257,7 +256,7 @@ export default (
         onBody: (bodyChunk) => {
           assert(state.isActive);
           if (state.dateTimeBody == null) {
-            state.dateTimeBody = getCurrentDateTime();
+            state.dateTimeBody = Date.now();
           }
           state.bytesBody += bodyChunk.length;
           if (onBody) {
@@ -278,7 +277,7 @@ export default (
         onEnd: async () => {
           assert(state.isActive);
           state.isActive = false;
-          state.dateTimeEnd = getCurrentDateTime();
+          state.dateTimeEnd = Date.now();
           if (state.dateTimeBody == null) {
             state.dateTimeBody = state.dateTimeEnd;
           }
@@ -330,7 +329,7 @@ export default (
           headers: requestOptions.headers,
           body: requestOptions.body,
           onHeader: (chunkRequestHeaders) => {
-            state.dateTimeRequestSend = getCurrentDateTime();
+            state.dateTimeRequestSend = Date.now();
             outgoing(Buffer.concat([chunkRequestHeaders, Buffer.from('\r\n')]));
             if (state.isActive) {
               requestOptions.body.once('error', handleErrorOnRequestBody);
@@ -378,7 +377,7 @@ export default (
         onConnect: () => {
           assert(state.isActive);
           state.isConnect = true;
-          const now = getCurrentDateTime();
+          const now = Date.now();
           clearTimeout(state.tick);
           state.tick = null;
           state.dateTimeConnect = now;
