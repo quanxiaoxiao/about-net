@@ -1,9 +1,8 @@
 /* eslint no-use-before-define: 0 */
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
+import { encodeHttp, decodeHttpResponse } from '@quanxiaoxiao/http-utils';
 import createConnector from '../createConnector.mjs';
-import encodeHttp from './encodeHttp.mjs';
-import { decodeHttpResponse } from './decodeHttp.mjs';
 import {
   SocketConnectError,
   SocketCloseError,
