@@ -1,8 +1,7 @@
 import net from 'node:net';
 import { PassThrough } from 'node:stream';
 import test from 'ava'; // eslint-disable-line
-import encodeHttp from '../../src/http/encodeHttp.mjs';
-import { decodeHttpRequest } from '../../src/http/decodeHttp.mjs';
+import { encodeHttp, decodeHttpRequest } from '@quanxiaoxiao/http-utils';
 import {
   SocketConnectError,
   SocketCloseError,
