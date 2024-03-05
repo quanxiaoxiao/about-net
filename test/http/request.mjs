@@ -4,7 +4,6 @@ import test from 'ava'; // eslint-disable-line
 import encodeHttp from '../../src/http/encodeHttp.mjs';
 import { decodeHttpRequest } from '../../src/http/decodeHttp.mjs';
 import {
-  HttpEncodeError,
   SocketConnectError,
   SocketCloseError,
 } from '../../src/errors.mjs';

@@ -1,7 +1,7 @@
 import tls from 'node:tls';
 import net from 'node:net';
 import request from './request.mjs';
-import convertHttpHeaders from './convertHttpHeaders.mjs';
+import generateRequestOptions from './generateRequestOptions.mjs';
 
 export default async ({
   hostname,
@@ -23,10 +23,13 @@ export default async ({
 }) => {
   const responseItem = await request(
     {
-      path,
-      method,
-      headers: convertHttpHeaders(headers, hostname),
-      body,
+      ...generateRequestOptions({
+        hostname,
+        path,
+        method,
+        headers,
+        body,
+      }),
       signal,
       onStartLine,
       onHeader,
