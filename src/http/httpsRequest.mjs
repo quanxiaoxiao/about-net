@@ -47,6 +47,7 @@ export default async ({
         secureContext: tls.createSecureContext({
           secureProtocol: 'TLSv1_2_method',
         }),
+        noDelay: true,
         ...other,
       };
       if (!options.servername) {

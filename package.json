@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/about-net",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "type": "module",
   "scripts": {
     "lint": "tsc",
@@ -29,7 +29,7 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">= 16.0.0"
+    "node": ">= 20.0.0"
   },
   "dependencies": {
     "@quanxiaoxiao/http-utils": "^0.3.2"

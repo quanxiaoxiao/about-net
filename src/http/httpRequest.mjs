@@ -41,6 +41,7 @@ export default async ({
       socket.connect({
         host: hostname,
         port,
+        noDelay: true,
       });
       return socket;
     },
