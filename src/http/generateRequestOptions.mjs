@@ -14,7 +14,6 @@ export default ({
 }) => {
   assert(!!hostname);
   const result = {
-    hostname,
     path,
     method,
     headers,

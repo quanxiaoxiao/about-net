@@ -14,7 +14,6 @@ test('1', (t) => {
     body: null,
   });
   t.deepEqual(ret, {
-    hostname: 'www.test.com',
     path: '/aaa',
     headers: ['Host', 'www.test.com'],
     method: 'GET',
@@ -31,7 +30,6 @@ test('1', (t) => {
     body: null,
   });
   t.deepEqual(ret, {
-    hostname: 'www.test.com',
     path: '/aaa',
     headers: ['host', 'www.bbb.com', 'Name', 'aaa'],
     method: 'GET',
@@ -45,7 +43,6 @@ test('1', (t) => {
     body: null,
   });
   t.deepEqual(ret, {
-    hostname: 'www.test.com',
     path: '/aaa',
     headers: ['host', 'www.bbb.com', 'foo', 'bar'],
     method: 'GET',
@@ -59,7 +56,6 @@ test('1', (t) => {
     body: null,
   });
   t.deepEqual(ret, {
-    hostname: 'www.test.com',
     path: '/aaa',
     headers: ['foo', 'bar', 'Host', 'www.test.com'],
     method: 'GET',
@@ -75,7 +71,6 @@ test('1', (t) => {
     body: null,
   });
   t.deepEqual(ret, {
-    hostname: 'www.test.com',
     path: '/aaa',
     headers: ['Name', 'aaa', 'Host', 'www.test.com'],
     method: 'GET',
